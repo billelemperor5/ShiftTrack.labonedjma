@@ -233,17 +233,21 @@ class ZKBioTimeService {
 
   /// 100% Read-Only: Fetch Employee details by matricule (emp_code)
   Future<ZKBioTimeEmployee?> getEmployee(String empCode) async {
-    // 1. Try Cloud and Local proxy if in Web
+    // 1. Try Cloud Tunnel, Local IP, and Localhost proxies if in Web
     if (kIsWeb) {
       final proxyList = [
-        _proxyUrl,
+        'https://labonedjma-biotime.loca.lt',
         'https://shifttrack-labonedjma.onrender.com',
+        'http://192.168.0.188:3000',
         'http://localhost:3000',
       ];
       for (final p in proxyList) {
         try {
           final proxyUrl = Uri.parse('$p/api/attendance/search?matricule=${empCode.trim()}');
-          final response = await http.get(proxyUrl).timeout(const Duration(seconds: 10));
+          final response = await http.get(
+            proxyUrl,
+            headers: {'Bypass-Tunnel-Reminder': 'true'},
+          ).timeout(const Duration(seconds: 10));
           if (response.statusCode == 200) {
             final body = jsonDecode(response.body);
             if (body['success'] == true && body['data']?['employee'] != null) {
@@ -283,11 +287,12 @@ class ZKBioTimeService {
     required String startDate, // YYYY-MM-DD
     required String endDate,   // YYYY-MM-DD
   }) async {
-    // 1. Try Cloud and Local proxy if in Web
+    // 1. Try Cloud Tunnel, Local IP, and Localhost proxies if in Web
     if (kIsWeb) {
       final proxyList = [
-        _proxyUrl,
+        'https://labonedjma-biotime.loca.lt',
         'https://shifttrack-labonedjma.onrender.com',
+        'http://192.168.0.188:3000',
         'http://localhost:3000',
       ];
       for (final p in proxyList) {
@@ -297,7 +302,10 @@ class ZKBioTimeService {
             '&startDate=${Uri.encodeComponent(startDate)}'
             '&endDate=${Uri.encodeComponent(endDate)}',
           );
-          final response = await http.get(proxyUrl).timeout(const Duration(seconds: 15));
+          final response = await http.get(
+            proxyUrl,
+            headers: {'Bypass-Tunnel-Reminder': 'true'},
+          ).timeout(const Duration(seconds: 15));
           if (response.statusCode == 200) {
             final body = jsonDecode(response.body);
             if (body['success'] == true && body['data'] != null) {
