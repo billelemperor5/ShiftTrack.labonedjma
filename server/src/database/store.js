@@ -109,11 +109,18 @@ function initDatabase() {
 function getSettings() {
   const settings = readJson(SETTINGS_FILE, {});
   const decryptedPass = decrypt(settings.passwordEnc);
+  const user = (settings.username && settings.username.trim() && settings.username !== 'attendance_readonly')
+    ? settings.username.trim()
+    : (process.env.ZKBIO_USERNAME || DEFAULT_ZKBIO_USER);
+  const pass = (decryptedPass && decryptedPass.trim())
+    ? decryptedPass.trim()
+    : (process.env.ZKBIO_PASSWORD || DEFAULT_ZKBIO_PASS);
+
   return {
     ...settings,
-    serverUrl: settings.serverUrl || DEFAULT_ZKBIO_URL,
-    username: settings.username || DEFAULT_ZKBIO_USER,
-    password: decryptedPass || DEFAULT_ZKBIO_PASS
+    serverUrl: (settings.serverUrl && settings.serverUrl.trim()) ? settings.serverUrl.trim() : DEFAULT_ZKBIO_URL,
+    username: user,
+    password: pass
   };
 }
 
