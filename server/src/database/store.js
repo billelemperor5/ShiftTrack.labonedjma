@@ -108,9 +108,12 @@ function initDatabase() {
 // Settings methods
 function getSettings() {
   const settings = readJson(SETTINGS_FILE, {});
+  const decryptedPass = decrypt(settings.passwordEnc);
   return {
     ...settings,
-    password: decrypt(settings.passwordEnc)
+    serverUrl: settings.serverUrl || DEFAULT_ZKBIO_URL,
+    username: settings.username || DEFAULT_ZKBIO_USER,
+    password: decryptedPass || DEFAULT_ZKBIO_PASS
   };
 }
 
