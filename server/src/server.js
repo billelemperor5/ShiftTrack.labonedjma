@@ -23,9 +23,23 @@ app.use(compression());
 app.use(express.json({ limit: '5mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// Serve frontend static assets
+// Serve frontend static assets if exists
+const fs = require('fs');
 const publicPath = path.join(__dirname, '../../frontend/public');
-app.use(express.static(publicPath));
+if (fs.existsSync(publicPath)) {
+  app.use(express.static(publicPath));
+}
+
+// Root endpoint
+app.get('/', (req, res) => {
+  res.json({
+    status: 'UP',
+    system: 'ShiftTrack LA BONEDJIMA Proxy API',
+    version: '1.0.0',
+    mode: '100% READ-ONLY',
+    timestamp: new Date().toISOString()
+  });
+});
 
 // API Routes
 app.use('/api/auth', authRoutes);
@@ -38,7 +52,7 @@ app.use('/api/reports', reportsRoutes);
 app.get('/api/health', (req, res) => {
   res.json({
     status: 'UP',
-    system: 'BILLEL ATTENDANCE',
+    system: 'ShiftTrack LA BONEDJIMA Proxy API',
     version: '1.0.0',
     mode: '100% READ-ONLY',
     timestamp: new Date().toISOString()
@@ -48,7 +62,14 @@ app.get('/api/health', (req, res) => {
 // SPA fallback
 app.use((req, res, next) => {
   if (req.method === 'GET' && !req.path.startsWith('/api')) {
-    return res.sendFile(path.join(publicPath, 'index.html'));
+    if (fs.existsSync(path.join(publicPath, 'index.html'))) {
+      return res.sendFile(path.join(publicPath, 'index.html'));
+    }
+    return res.json({
+      status: 'UP',
+      system: 'ShiftTrack LA BONEDJIMA Proxy API',
+      version: '1.0.0'
+    });
   }
   next();
 });

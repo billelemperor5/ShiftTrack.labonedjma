@@ -121,7 +121,7 @@ class ZKBioTimePunch {
 
 class ZKBioTimeService {
   static const String defaultServerUrl = 'http://105.96.0.211:8080';
-  static const String defaultProxyUrl = 'http://localhost:3000';
+  static const String defaultProxyUrl = 'https://shifttrack-labonedjma.onrender.com';
   static const String defaultUsername = 'billel.bouraba';
   
   String _serverUrl = defaultServerUrl;
@@ -233,20 +233,27 @@ class ZKBioTimeService {
 
   /// 100% Read-Only: Fetch Employee details by matricule (emp_code)
   Future<ZKBioTimeEmployee?> getEmployee(String empCode) async {
-    // 1. Try local proxy if in Web
+    // 1. Try Cloud and Local proxy if in Web
     if (kIsWeb) {
-      try {
-        final proxyUrl = Uri.parse('$_proxyUrl/api/attendance/search?matricule=${empCode.trim()}');
-        final response = await http.get(proxyUrl).timeout(const Duration(seconds: 6));
-        if (response.statusCode == 200) {
-          final body = jsonDecode(response.body);
-          if (body['success'] == true && body['data']?['employee'] != null) {
-            final emp = ZKBioTimeEmployee.fromJson(body['data']['employee']);
-            _currentUser = emp;
-            return emp;
+      final proxyList = [
+        _proxyUrl,
+        'https://shifttrack-labonedjma.onrender.com',
+        'http://localhost:3000',
+      ];
+      for (final p in proxyList) {
+        try {
+          final proxyUrl = Uri.parse('$p/api/attendance/search?matricule=${empCode.trim()}');
+          final response = await http.get(proxyUrl).timeout(const Duration(seconds: 10));
+          if (response.statusCode == 200) {
+            final body = jsonDecode(response.body);
+            if (body['success'] == true && body['data']?['employee'] != null) {
+              final emp = ZKBioTimeEmployee.fromJson(body['data']['employee']);
+              _currentUser = emp;
+              return emp;
+            }
           }
-        }
-      } catch (_) {}
+        } catch (_) {}
+      }
     }
 
     // 2. Direct ZKBioTime call
@@ -276,48 +283,55 @@ class ZKBioTimeService {
     required String startDate, // YYYY-MM-DD
     required String endDate,   // YYYY-MM-DD
   }) async {
-    // 1. Try local proxy if in Web
+    // 1. Try Cloud and Local proxy if in Web
     if (kIsWeb) {
-      try {
-        final proxyUrl = Uri.parse(
-          '$_proxyUrl/api/attendance/search?matricule=${empCode.trim()}'
-          '&startDate=${Uri.encodeComponent(startDate)}'
-          '&endDate=${Uri.encodeComponent(endDate)}',
-        );
-        final response = await http.get(proxyUrl).timeout(const Duration(seconds: 10));
-        if (response.statusCode == 200) {
-          final body = jsonDecode(response.body);
-          if (body['success'] == true && body['data'] != null) {
-            if (body['data']['employee'] != null) {
-              try {
-                final emp = ZKBioTimeEmployee.fromJson(body['data']['employee']);
-                _currentUser = emp;
-              } catch (_) {}
-            }
-            if (body['data']['days'] is List) {
-              final days = body['data']['days'] as List;
-              final List<ZKBioTimePunch> punchesList = [];
-              for (final d in days) {
-                if (d['rawPunches'] is List) {
-                  for (final p in d['rawPunches']) {
-                    punchesList.add(ZKBioTimePunch(
-                      id: p['id'] ?? 0,
-                      empCode: empCode,
-                      punchTime: p['punchTime'] ?? p['punch_time'] ?? '',
-                      punchState: p['punchState'] ?? p['punch_state'] ?? '',
-                      terminalAlias: p['terminalAlias'] ?? p['terminal_alias'] ?? 'BioTime',
-                    ));
+      final proxyList = [
+        _proxyUrl,
+        'https://shifttrack-labonedjma.onrender.com',
+        'http://localhost:3000',
+      ];
+      for (final p in proxyList) {
+        try {
+          final proxyUrl = Uri.parse(
+            '$p/api/attendance/search?matricule=${empCode.trim()}'
+            '&startDate=${Uri.encodeComponent(startDate)}'
+            '&endDate=${Uri.encodeComponent(endDate)}',
+          );
+          final response = await http.get(proxyUrl).timeout(const Duration(seconds: 15));
+          if (response.statusCode == 200) {
+            final body = jsonDecode(response.body);
+            if (body['success'] == true && body['data'] != null) {
+              if (body['data']['employee'] != null) {
+                try {
+                  final emp = ZKBioTimeEmployee.fromJson(body['data']['employee']);
+                  _currentUser = emp;
+                } catch (_) {}
+              }
+              if (body['data']['days'] is List) {
+                final days = body['data']['days'] as List;
+                final List<ZKBioTimePunch> punchesList = [];
+                for (final d in days) {
+                  if (d['rawPunches'] is List) {
+                    for (final p in d['rawPunches']) {
+                      punchesList.add(ZKBioTimePunch(
+                        id: p['id'] ?? 0,
+                        empCode: empCode,
+                        punchTime: p['punchTime'] ?? p['punch_time'] ?? '',
+                        punchState: p['punchState'] ?? p['punch_state'] ?? '',
+                        terminalAlias: p['terminalAlias'] ?? p['terminal_alias'] ?? 'BioTime',
+                      ));
+                    }
                   }
                 }
-              }
-              if (punchesList.isNotEmpty) {
-                punchesList.sort((a, b) => a.punchTime.compareTo(b.punchTime));
-                return punchesList;
+                if (punchesList.isNotEmpty) {
+                  punchesList.sort((a, b) => a.punchTime.compareTo(b.punchTime));
+                  return punchesList;
+                }
               }
             }
           }
-        }
-      } catch (_) {}
+        } catch (_) {}
+      }
     }
 
     // 2. Direct ZKBioTime API call
