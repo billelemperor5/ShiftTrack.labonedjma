@@ -23,14 +23,12 @@ class AttendanceService {
 
     const cleanCode = String(empCode).trim();
     const settings = getSettings();
-    const connector = this.getConnectorInstance();
-
-    // Check if credentials are configured
-    if (!settings.username || !settings.password) {
-      throw new Error(
-        'Veuillez configurer les identifiants de connexion ZKBioTime (Nom d\'utilisateur et Mot de passe) dans les Paramètres.'
-      );
-    }
+    const username = settings.username || process.env.ZKBIO_USERNAME || 'admin';
+    const password = settings.password || process.env.ZKBIO_PASSWORD || 'admin';
+    const serverUrl = settings.serverUrl || process.env.ZKBIO_BASE_URL || 'http://105.96.0.211:8080';
+    
+    this.connector.updateCredentials(serverUrl, username, password);
+    const connector = this.connector;
 
     const cacheKey = `att_${cleanCode}_${startDate}_${endDate}`;
     if (!forceSync) {
