@@ -1,0 +1,19 @@
+{
+  "java.configuration.updateBuildConfiguration": "automatic",
+  "java.import.exclusions": [
+    "**/build/**",
+    "**/.dart_tool/**"
+  ],
+  "java.project.resourceFilters": [
+    "build",
+    ".dart_tool"
+  ],
+  "files.exclude": {
+    "**/build": true,
+    "**/.dart_tool": true
+  },
+  "search.exclude": {
+    "**/build": true,
+    "**/.dart_tool": true
+  }
+}
