@@ -51,8 +51,9 @@ function writeJson(filePath, data) {
 function initDatabase() {
   // 1. Settings
   let settings = readJson(SETTINGS_FILE, null);
-  if (!settings) {
+  if (!settings || !settings.username || settings.username === 'attendance_readonly' || !decrypt(settings.passwordEnc)) {
     settings = {
+      ...(settings || {}),
       serverUrl: DEFAULT_ZKBIO_URL,
       username: DEFAULT_ZKBIO_USER,
       passwordEnc: encrypt(DEFAULT_ZKBIO_PASS),
