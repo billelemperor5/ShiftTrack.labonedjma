@@ -23,9 +23,13 @@ class AttendanceService {
 
     const cleanCode = String(empCode).trim();
     const settings = getSettings();
-    const username = (settings.username && settings.username !== 'attendance_readonly') ? settings.username : 'billel.bouraba';
-    const password = (settings.password && settings.password.length > 0) ? settings.password : '1998@EMPR';
-    const serverUrl = settings.serverUrl || 'http://105.96.0.211:8080';
+    const username = (settings.username && settings.username !== 'attendance_readonly')
+      ? settings.username
+      : (process.env.ZKBIO_USERNAME || '');
+    const password = (settings.password && settings.password.length > 0)
+      ? settings.password
+      : (process.env.ZKBIO_PASSWORD || '');
+    const serverUrl = settings.serverUrl || process.env.ZKBIO_BASE_URL || 'http://105.96.0.211:8080';
     
     this.connector.updateCredentials(serverUrl, username, password);
     const connector = this.connector;

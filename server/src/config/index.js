@@ -47,8 +47,8 @@ module.exports = {
   
   // Default ZKBioTime settings
   DEFAULT_ZKBIO_URL: process.env.ZKBIO_BASE_URL || 'http://105.96.0.211:8080',
-  DEFAULT_ZKBIO_USER: process.env.ZKBIO_USERNAME || 'billel.bouraba',
-  DEFAULT_ZKBIO_PASS: process.env.ZKBIO_PASSWORD || '1998@EMPR',
+  DEFAULT_ZKBIO_USER: process.env.ZKBIO_USERNAME || '',
+  DEFAULT_ZKBIO_PASS: process.env.ZKBIO_PASSWORD || '',
   
   // Overtime & Attendance Calculation defaults
   DEFAULT_OVERTIME_START: '15:30',
