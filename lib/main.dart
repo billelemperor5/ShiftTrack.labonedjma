@@ -6,6 +6,7 @@ import 'providers/app_provider.dart';
 import 'providers/attendance_provider.dart';
 import 'providers/payroll_provider.dart';
 import 'providers/transaction_provider.dart';
+import 'providers/team_provider.dart';
 import 'services/notification_service.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -27,6 +28,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => AttendanceProvider()),
         ChangeNotifierProvider(create: (_) => PayrollProvider()),
         ChangeNotifierProvider(create: (_) => TransactionProvider()),
+        ChangeNotifierProvider(create: (_) => TeamProvider()),
       ],
       child: const ShiftTrackApp(),
     ),

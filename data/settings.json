@@ -1,0 +1,12 @@
+{
+  "serverUrl": "http://105.96.0.211:8080",
+  "username": "",
+  "passwordEnc": "",
+  "overtimeStartTime": "15:30",
+  "standardStartTime": "08:00",
+  "duplicateWindowSec": 120,
+  "enableRounding": false,
+  "roundingMinutes": 0,
+  "lastSyncTime": null,
+  "updatedAt": "2026-08-16T20:04:56.685Z"
+}

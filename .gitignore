@@ -44,10 +44,10 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
-# Security, Environment, and Database ignores
-.env
-.env.*
-*.env
-data/
-server/data/
-cloudflared.exe
+# Node
+node_modules/
+**/node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+

@@ -330,7 +330,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
           const SizedBox(height: 10),
           buildActionBtn(
             label: 'Statistiques avancées',
-            subtitle: 'Rapports, moyennes et heures supplémentaires',
+            subtitle: 'Rapports, moyennes et taux de présence',
             icon: Icons.insights_rounded,
             gradient: const [Color(0xFF2563EB), Color(0xFF7C3AED)],
             onTap: () => _openFeature(context, 2, const AnalyticsScreen()),
@@ -954,6 +954,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
   ) {
     final width = MediaQuery.of(context).size.width;
     final isDesktop = width > 850;
+    final attendance = context.watch<AttendanceProvider>();
 
     if (isDesktop) {
       final gradientColors = isDark 
@@ -1000,6 +1001,15 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
                 ),
                 Row(
                   children: [
+                    _GlassSyncButton(
+                      isLoading: attendance.isLoading,
+                      isWhiteText: true,
+                      onTap: () {
+                        HapticFeedback.mediumImpact();
+                        attendance.refresh();
+                      },
+                    ),
+                    const SizedBox(width: 12),
                     _GlassDatePill(now: now, isWhiteText: true),
                   ],
                 ),
@@ -1788,6 +1798,41 @@ class _EnterpriseHeaderBannerState extends State<_EnterpriseHeaderBanner> {
                                               },
                                             ),
                                             const Spacer(),
+                                            _GlassSyncButton(
+                                              isLoading: attendance.isLoading,
+                                              onTap: () async {
+                                                HapticFeedback.mediumImpact();
+                                                final empCode = attendance.currentEmpCode.isNotEmpty ? attendance.currentEmpCode : '40754';
+                                                final res = await attendance.fetchAttendance(empCode, forceSync: true);
+                                                if (context.mounted) {
+                                                  ScaffoldMessenger.of(context).showSnackBar(
+                                                    SnackBar(
+                                                      content: Row(
+                                                        children: [
+                                                          Icon(
+                                                            res != null ? Icons.check_circle_rounded : Icons.info_outline_rounded,
+                                                            color: Colors.white,
+                                                            size: 20,
+                                                          ),
+                                                          const SizedBox(width: 10),
+                                                          Text(
+                                                            res != null
+                                                                ? 'Synchronisation des pointages réussie !'
+                                                                : 'Mise à jour effectuée.',
+                                                            style: const TextStyle(fontWeight: FontWeight.bold),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                      backgroundColor: res != null ? const Color(0xFF059669) : const Color(0xFF2563EB),
+                                                      behavior: SnackBarBehavior.floating,
+                                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                                      duration: const Duration(seconds: 2),
+                                                    ),
+                                                  );
+                                                }
+                                              },
+                                            ),
+                                            const SizedBox(width: 10),
                                             _GlassDatePill(now: now),
                                           ],
                                         ),
@@ -1857,18 +1902,98 @@ class _GlassIconButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return _GlassSurface(
-      radius: 18,
+      radius: 14,
       isDark: isDark,
       child: InkWell(
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(14),
         onTap: onTap,
         child: SizedBox(
-          width: 54,
-          height: 54,
+          width: 44,
+          height: 44,
           child: Icon(
             icon,
             color: isDark ? Colors.white : const Color(0xFF0F172A),
-            size: 26,
+            size: 22,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _GlassSyncButton extends StatefulWidget {
+  final bool isLoading;
+  final VoidCallback onTap;
+  final bool isWhiteText;
+
+  const _GlassSyncButton({
+    required this.isLoading,
+    required this.onTap,
+    this.isWhiteText = false,
+  });
+
+  @override
+  State<_GlassSyncButton> createState() => _GlassSyncButtonState();
+}
+
+class _GlassSyncButtonState extends State<_GlassSyncButton> with SingleTickerProviderStateMixin {
+  late AnimationController _rotationController;
+
+  @override
+  void initState() {
+    super.initState();
+    _rotationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    );
+    if (widget.isLoading) {
+      _rotationController.repeat();
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant _GlassSyncButton oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isLoading && !_rotationController.isAnimating) {
+      _rotationController.repeat();
+    } else if (!widget.isLoading && _rotationController.isAnimating) {
+      _rotationController.stop();
+      _rotationController.reset();
+    }
+  }
+
+  @override
+  void dispose() {
+    _rotationController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final iconColor = widget.isWhiteText ? Colors.white : (isDark ? Colors.white : const Color(0xFF0F172A));
+
+    return _GlassSurface(
+      radius: 14,
+      isDark: isDark || widget.isWhiteText,
+      child: Tooltip(
+        message: 'Synchroniser avec ZKBioTime',
+        child: InkWell(
+          borderRadius: BorderRadius.circular(14),
+          onTap: widget.isLoading ? null : widget.onTap,
+          child: SizedBox(
+            width: 44,
+            height: 44,
+            child: Center(
+              child: RotationTransition(
+                turns: _rotationController,
+                child: Icon(
+                  Icons.sync_rounded,
+                  color: iconColor,
+                  size: 20,
+                ),
+              ),
+            ),
           ),
         ),
       ),
@@ -1887,24 +2012,24 @@ class _GlassDatePill extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final textColor = isWhiteText ? Colors.white : (isDark ? Colors.white : const Color(0xFF0F172A));
     return _GlassSurface(
-      radius: 18,
+      radius: 14,
       isDark: isDark || isWhiteText,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
               Icons.calendar_month_rounded,
               color: textColor,
-              size: 18,
+              size: 16,
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 6),
             Text(
               DateFormat('EEE, d MMM', 'fr').format(now),
               style: TextStyle(
                 color: textColor,
-                fontSize: 14,
+                fontSize: 13,
                 fontWeight: FontWeight.w800,
               ),
             ),

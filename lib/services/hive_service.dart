@@ -9,6 +9,7 @@ class HiveService {
   static const String attendanceBoxName = 'attendanceBox';
   static const String payrollBoxName = 'payrollBox';
   static const String transactionBoxName = 'transactionBox';
+  static const String teamMembersBoxName = 'teamMembersBox';
 
   static Future<void> init() async {
     await Hive.initFlutter();
@@ -39,6 +40,7 @@ class HiveService {
     await Hive.openBox<AttendanceRecord>(attendanceBoxName);
     await Hive.openBox<PayrollSlip>(payrollBoxName);
     await Hive.openBox<Transaction>(transactionBoxName);
+    await Hive.openBox<String>(teamMembersBoxName);
   }
 
   static Box<UserProfile> getUserBox() => Hive.box<UserProfile>(userBoxName);
@@ -48,4 +50,6 @@ class HiveService {
       Hive.box<PayrollSlip>(payrollBoxName);
   static Box<Transaction> getTransactionBox() =>
       Hive.box<Transaction>(transactionBoxName);
+  static Box<String> getTeamMembersBox() =>
+      Hive.box<String>(teamMembersBoxName);
 }

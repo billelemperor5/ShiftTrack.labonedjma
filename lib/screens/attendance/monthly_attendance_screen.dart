@@ -601,7 +601,7 @@ class _MonthlyAttendanceScreenState extends State<MonthlyAttendanceScreen> {
                     child: ListView.separated(
                       shrinkWrap: true,
                       itemCount: punchesList.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 8),
+                      separatorBuilder: (_, index) => const SizedBox(height: 8),
                       itemBuilder: (context, idx) {
                         final p = punchesList[idx];
                         final isFirst = idx == 0;
@@ -824,6 +824,54 @@ class _MonthlyAttendanceScreenState extends State<MonthlyAttendanceScreen> {
                       ),
                     ),
                   ),
+                ),
+                centerTitle: false,
+                titleSpacing: 4,
+                title: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(6.5),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF0D9488), Color(0xFF2563EB)],
+                        ),
+                        borderRadius: BorderRadius.circular(10),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF2563EB).withValues(alpha: 0.35),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: const Icon(Icons.fingerprint_rounded, color: Colors.white, size: 16),
+                    ),
+                    const SizedBox(width: 8),
+                    const Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'Suivi Présence',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 14.5,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: -0.2,
+                          ),
+                        ),
+                        Text(
+                          'LA BONEDJIMA • BioTime',
+                          style: TextStyle(
+                            color: Color(0xFF94A3B8),
+                            fontSize: 9.5,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
                 actions: [
                   // PDF Export Button

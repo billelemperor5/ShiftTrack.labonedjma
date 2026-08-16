@@ -1,0 +1,80 @@
+[
+  {
+    "id": "log_1786916279878_acq4b7",
+    "timestamp": "2026-08-16T21:37:59.878Z",
+    "userId": "anonymous",
+    "username": "Invité",
+    "role": "GUEST",
+    "action": "SEARCH_ERROR",
+    "details": {
+      "error": "Erreur lors de la communication avec ZKBioTime : Identifiant ZKBioTime non configuré"
+    },
+    "ipAddress": "::1",
+    "status": "FAILURE"
+  },
+  {
+    "id": "log_1786916279871_220823",
+    "timestamp": "2026-08-16T21:37:59.871Z",
+    "userId": "anonymous",
+    "username": "Invité",
+    "role": "GUEST",
+    "action": "SEARCH_ERROR",
+    "details": {
+      "error": "Erreur lors de la communication avec ZKBioTime : Identifiant ZKBioTime non configuré"
+    },
+    "ipAddress": "::ffff:192.168.0.188",
+    "status": "FAILURE"
+  },
+  {
+    "id": "log_1786916277211_7u1wk4",
+    "timestamp": "2026-08-16T21:37:57.211Z",
+    "userId": "anonymous",
+    "username": "Invité",
+    "role": "GUEST",
+    "action": "SEARCH_ERROR",
+    "details": {
+      "error": "Erreur lors de la communication avec ZKBioTime : Identifiant ZKBioTime non configuré"
+    },
+    "ipAddress": "::1",
+    "status": "FAILURE"
+  },
+  {
+    "id": "log_1786916277191_bgixqm",
+    "timestamp": "2026-08-16T21:37:57.191Z",
+    "userId": "anonymous",
+    "username": "Invité",
+    "role": "GUEST",
+    "action": "SEARCH_ERROR",
+    "details": {
+      "error": "Erreur lors de la communication avec ZKBioTime : Identifiant ZKBioTime non configuré"
+    },
+    "ipAddress": "::ffff:192.168.0.188",
+    "status": "FAILURE"
+  },
+  {
+    "id": "log_1786915397036_85k88w",
+    "timestamp": "2026-08-16T21:23:17.036Z",
+    "userId": "anonymous",
+    "username": "Invité",
+    "role": "GUEST",
+    "action": "SEARCH_ERROR",
+    "details": {
+      "error": "Erreur lors de la communication avec ZKBioTime : Identifiant ZKBioTime non configuré"
+    },
+    "ipAddress": "::1",
+    "status": "FAILURE"
+  },
+  {
+    "id": "log_1786915397020_ulktzi",
+    "timestamp": "2026-08-16T21:23:17.020Z",
+    "userId": "anonymous",
+    "username": "Invité",
+    "role": "GUEST",
+    "action": "SEARCH_ERROR",
+    "details": {
+      "error": "Erreur lors de la communication avec ZKBioTime : Identifiant ZKBioTime non configuré"
+    },
+    "ipAddress": "::ffff:192.168.0.188",
+    "status": "FAILURE"
+  }
+]

@@ -10,9 +10,6 @@ import '../../core/theme/app_design.dart';
 import '../../models/user_profile.dart';
 import '../../providers/app_provider.dart';
 import '../../providers/attendance_provider.dart';
-import '../../providers/payroll_provider.dart';
-import '../../providers/transaction_provider.dart';
-import '../../services/backup_service.dart';
 import '../../services/notification_service.dart';
 import '../../utils/storage_utils.dart';
 import '../../utils/image_helper.dart';
@@ -27,7 +24,6 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   static const List<int> _saturdayToThursday = [6, 7, 1, 2, 3, 4];
-  static const List<int> _sundayToThursday = [7, 1, 2, 3, 4];
 
   late final TextEditingController _companyCtrl;
   late final TextEditingController _nameCtrl;
@@ -168,95 +164,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Future<void> _selectTime(BuildContext context, bool isCheckIn) async {
-    final value = isCheckIn ? _defaultIn : _defaultOut;
-    final parts = value.split(':');
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay(
-        hour: int.tryParse(parts.first) ?? 8,
-        minute: parts.length > 1 ? int.tryParse(parts[1]) ?? 0 : 0,
-      ),
-    );
-    if (picked == null) return;
-    final formatted =
-        '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}';
-    setState(() {
-      if (isCheckIn) {
-        _defaultIn = formatted;
-      } else {
-        _defaultOut = formatted;
-      }
-    });
-  }
 
-  Future<void> _handleNotificationsChanged(bool value) async {
-    HapticFeedback.selectionClick();
 
-    if (!value) {
-      setState(() => _notificationsEnabled = false);
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Notifications désactivées. Appuyez sur Enregistrer.'),
-        ),
-      );
-      return;
-    }
 
-    final selectedDays = await showModalBottomSheet<List<int>>(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => _NotificationDaysSheet(
-        initialDays: _notificationWorkDays,
-        saturdayToThursday: _saturdayToThursday,
-        sundayToThursday: _sundayToThursday,
-      ),
-    );
-    if (selectedDays == null || selectedDays.isEmpty) return;
-
-    final granted = await NotificationService.requestPermissions();
-    if (!mounted) return;
-    if (!granted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Autorisation notifications refusée par Android.'),
-        ),
-      );
-      return;
-    }
-
-    setState(() {
-      _notificationsEnabled = true;
-      _notificationWorkDays = selectedDays;
-    });
-    await NotificationService.showTestNotification();
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Notifications activées. Appuyez sur Enregistrer.'),
-      ),
-    );
-  }
-
-  String _notificationDaysLabel() {
-    bool sameDays(List<int> source, List<int> target) {
-      final sourceSet = source.toSet();
-      final targetSet = target.toSet();
-      return sourceSet.length == targetSet.length &&
-          sourceSet.containsAll(targetSet);
-    }
-
-    if (sameDays(_notificationWorkDays, _saturdayToThursday)) {
-      return 'Samedi à jeudi';
-    }
-    if (sameDays(_notificationWorkDays, _sundayToThursday)) {
-      return 'Dimanche à jeudi';
-    }
-    return 'Jours personnalisés';
-  }
 
   Future<void> _save(UserProfile oldProfile) async {
     if (_saving) return;
@@ -305,141 +215,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (mounted) Navigator.pop(context);
   }
 
-  Future<void> _exportBackup() async {
-    await _showProgressDialog('Création de la sauvegarde...');
-    try {
-      await BackupService.exportBackup(
-        onProgress: (p) => _progressNotifier.value = p,
-      );
-      if (mounted) Navigator.pop(context);
-    } catch (e) {
-      if (!mounted) return;
-      Navigator.pop(context);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Erreur: $e')));
-    }
-  }
 
-  Future<void> _restoreBackup() async {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final onSurface = Theme.of(context).colorScheme.onSurface;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: Theme.of(context).cardColor,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: Text(
-          'Confirmer la restauration',
-          style: TextStyle(color: onSurface),
-        ),
-        content: Text(
-          'Toutes vos données actuelles seront remplacées par le fichier importé.',
-          style: TextStyle(color: onSurface.withValues(alpha: 0.68)),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Annuler'),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: isDark ? const Color(0xFFEF4444) : Colors.red,
-              foregroundColor: Colors.white,
-            ),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Restaurer'),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true) return;
-
-    bool dialogShown = false;
-    try {
-      final restored = await BackupService.importBackup(
-        onProgress: (p) {
-          _progressNotifier.value = p;
-          if (!dialogShown && mounted) {
-            dialogShown = true;
-            _showProgressDialog('Restauration des données...');
-          }
-        },
-      );
-      if (dialogShown && mounted) {
-        Navigator.pop(context);
-      }
-      if (restored && mounted) {
-        context.read<AppProvider>().refresh();
-        context.read<AttendanceProvider>().refresh();
-        context.read<PayrollProvider>().refresh();
-        context.read<TransactionProvider>().refresh();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Données restaurées avec succès')),
-        );
-        Navigator.pop(context);
-      }
-    } catch (e) {
-      if (!mounted) return;
-      if (dialogShown) {
-        Navigator.pop(context);
-      }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erreur lors de la restauration: $e')),
-      );
-    }
-  }
-
-  Future<void> _showProgressDialog(String message) async {
-    _progressNotifier.value = 0;
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => ValueListenableBuilder<double>(
-        valueListenable: _progressNotifier,
-        builder: (context, value, child) {
-          return AlertDialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(24),
-            ),
-            content: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  CircularProgressIndicator(
-                    value: value,
-                    strokeWidth: 6,
-                    color: const Color(0xFF0F766E),
-                    backgroundColor: const Color(
-                      0xFF0F766E,
-                    ).withValues(alpha: 0.12),
-                  ),
-                  const SizedBox(height: 22),
-                  Text(
-                    message,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(fontWeight: FontWeight.w800),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    '${(value * 100).round()}%',
-                    style: const TextStyle(
-                      color: Color(0xFF0F766E),
-                      fontSize: 22,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
-    );
-    await WidgetsBinding.instance.endOfFrame;
-    await Future<void>.delayed(const Duration(milliseconds: 120));
-  }
 
   void _showInfo() {
     showGeneralDialog(
@@ -513,71 +289,63 @@ class _SettingsScreenState extends State<SettingsScreen> {
           decoration: AppDesign.pageBackground(isDark),
           child: SafeArea(
             top: false,
-            child: Column(
-              children: [
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.only(bottom: 20),
-                    child: Column(
-                      children: [
-                        _buildHeader(profile, isDark),
-                        Center(
-                          child: ConstrainedBox(
-                            constraints: const BoxConstraints(maxWidth: 1000),
-                            child: Padding(
-                              padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  _SettingsTabs(
-                                    selected: _selectedTab,
-                                    onSelected: (value) =>
-                                        setState(() => _selectedTab = value),
-                                  ),
-                                  const SizedBox(height: 18),
-                                  AnimatedSwitcher(
-                                    duration: const Duration(milliseconds: 260),
-                                    switchInCurve: Curves.easeOutCubic,
-                                    switchOutCurve: Curves.easeOutCubic,
-                                    child: KeyedSubtree(
-                                      key: ValueKey(_selectedTab),
-                                      child: _tabContent(isDark, onSurface),
-                                    ),
-                                  ),
-                                ],
+            child: SingleChildScrollView(
+              padding: EdgeInsets.fromLTRB(
+                0,
+                0,
+                0,
+                MediaQuery.of(context).padding.bottom + 32,
+              ),
+              child: Column(
+                children: [
+                  _buildHeader(profile, isDark),
+                  Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 1000),
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _SettingsTabs(
+                              selected: _selectedTab,
+                              onSelected: (value) =>
+                                  setState(() => _selectedTab = value),
+                            ),
+                            const SizedBox(height: 18),
+                            AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 260),
+                              switchInCurve: Curves.easeOutCubic,
+                              switchOutCurve: Curves.easeOutCubic,
+                              child: KeyedSubtree(
+                                key: ValueKey(_selectedTab),
+                                child: _tabContent(isDark, onSurface),
                               ),
                             ),
-                          ),
+                            const SizedBox(height: 24),
+                            isDesktop
+                                ? Center(
+                                    child: SizedBox(
+                                      width: 320,
+                                      child: _PremiumSaveButton(
+                                        saving: _saving,
+                                        saved: _saved,
+                                        onTap: () => _save(profile),
+                                      ),
+                                    ),
+                                  )
+                                : _PremiumSaveButton(
+                                    saving: _saving,
+                                    saved: _saved,
+                                    onTap: () => _save(profile),
+                                  ),
+                          ],
                         ),
-                      ],
+                      ),
                     ),
                   ),
-                ),
-                Padding(
-                  padding: EdgeInsets.fromLTRB(
-                    20,
-                    8,
-                    20,
-                    MediaQuery.of(context).padding.bottom + 14,
-                  ),
-                  child: isDesktop
-                      ? Center(
-                          child: SizedBox(
-                            width: 320,
-                            child: _PremiumSaveButton(
-                              saving: _saving,
-                              saved: _saved,
-                              onTap: () => _save(profile),
-                            ),
-                          ),
-                        )
-                      : _PremiumSaveButton(
-                          saving: _saving,
-                          saved: _saved,
-                          onTap: () => _save(profile),
-                        ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -673,12 +441,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 Row(
                   children: [
                     _GlassRoundButton(
-                      icon: Icons.edit_rounded,
-                      onTap: _pickImage,
-                    ),
-                    const SizedBox(width: 8),
-                    _GlassRoundButton(
                       icon: Icons.info_outline_rounded,
+                      iconColor: Colors.white,
+                      color: Colors.white.withValues(alpha: 0.15),
                       onTap: _showInfo,
                     ),
                     const SizedBox(width: 14),
@@ -800,30 +565,34 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       Stack(
                         clipBehavior: Clip.none,
                         children: [
-                          Container(
-                            width: 88,
-                            height: 88,
-                            padding: const EdgeInsets.all(4),
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: isDark
-                                  ? Colors.white.withValues(alpha: 0.18)
-                                  : const Color(0xFFF1F5F9),
-                              border: Border.all(
+                          InkWell(
+                            onTap: _pickImage,
+                            borderRadius: BorderRadius.circular(999),
+                            child: Container(
+                              width: 88,
+                              height: 88,
+                              padding: const EdgeInsets.all(4),
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
                                 color: isDark
-                                    ? Colors.white.withValues(alpha: 0.30)
-                                    : const Color(0xFFE2E8F0),
+                                    ? Colors.white.withValues(alpha: 0.18)
+                                    : const Color(0xFFF1F5F9),
+                                border: Border.all(
+                                  color: isDark
+                                      ? Colors.white.withValues(alpha: 0.30)
+                                      : const Color(0xFFE2E8F0),
+                                ),
                               ),
-                            ),
-                            child: CircleAvatar(
-                              backgroundColor: isDark
-                                  ? const Color(0xFF1E3A8A)
-                                  : const Color(0xFF2563EB),
-                              backgroundImage: hasLogo
-                                  ? ResizeImage(AppImageHelper.getImageProvider(_logoPath!), width: 150, height: 150)
-                                  : (emp?.photoUrl != null && emp!.photoUrl!.isNotEmpty
-                                      ? NetworkImage(emp.photoUrl!)
-                                      : AppImageHelper.officialLogoProvider),
+                              child: CircleAvatar(
+                                backgroundColor: isDark
+                                    ? const Color(0xFF1E3A8A)
+                                    : const Color(0xFF2563EB),
+                                backgroundImage: hasLogo
+                                    ? ResizeImage(AppImageHelper.getImageProvider(_logoPath!), width: 150, height: 150)
+                                    : (emp?.photoUrl != null && emp!.photoUrl!.isNotEmpty
+                                        ? NetworkImage(emp.photoUrl!)
+                                        : AppImageHelper.officialLogoProvider),
+                              ),
                             ),
                           ),
                           Positioned(
@@ -880,7 +649,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   icon: Icons.verified_rounded,
                                   label: 'Compte actif',
                                 ),
-                                _EditProfileButton(onTap: _pickImage),
                                 _LogoutHeaderButton(onTap: _confirmLogout),
                               ],
                             ),
@@ -902,10 +670,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     switch (_selectedTab) {
       case 1:
         return _preferencesTab(isDark, onSurface);
-      case 2:
-        return _securityTab(isDark, onSurface);
-      case 3:
-        return _systemTab(isDark, onSurface);
       case 0:
       default:
         return _accountTab(isDark, onSurface);
@@ -1027,220 +791,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ],
         ),
-        const SizedBox(height: 22),
-        _SectionHeader(
-          icon: Icons.schedule_rounded,
-          title: 'Horaires par défaut',
-        ),
-        const SizedBox(height: 12),
-        _PremiumPanel(
-          isDark: isDark,
-          child: Column(
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: _TimeDashboardTile(
-                      icon: Icons.login_rounded,
-                      label: "Heure d'entrée",
-                      time: _defaultIn,
-                      color: const Color(0xFF10B981),
-                      onTap: () => _selectTime(context, true),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _TimeDashboardTile(
-                      icon: Icons.logout_rounded,
-                      label: 'Heure de sortie',
-                      time: _defaultOut,
-                      color: const Color(0xFFEF4444),
-                      onTap: () => _selectTime(context, false),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              _TimelineSummary(
-                start: _defaultIn,
-                end: _defaultOut,
-                breakDuration: _breakDuration,
-                isBreakPaid: _isBreakPaid,
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 22),
-        _SectionHeader(
-          icon: Icons.coffee_rounded,
-          title: 'Paramètres de pause',
-        ),
-        const SizedBox(height: 12),
-        _PremiumPanel(
-          isDark: isDark,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  _SoftIcon(
-                    icon: Icons.timer_rounded,
-                    color: const Color(0xFFF97316),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Durée de pause',
-                          style: TextStyle(
-                            color: onSurface,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                        Text(
-                          'Résumé: $_breakDuration min ${_isBreakPaid ? 'payées' : 'déduites'}',
-                          style: TextStyle(
-                            color: onSurface.withValues(alpha: 0.48),
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Text(
-                    '$_breakDuration min',
-                    style: const TextStyle(
-                      color: Color(0xFFF97316),
-                      fontSize: 16,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                ],
-              ),
-              Slider(
-                value: _breakDuration.toDouble().clamp(0, 120),
-                min: 0,
-                max: 120,
-                divisions: 24,
-                activeColor: const Color(0xFFF97316),
-                onChanged: (value) {
-                  HapticFeedback.selectionClick();
-                  setState(() => _breakDuration = value.round());
-                },
-              ),
-              _PanelDivider(onSurface: onSurface),
-              _SwitchSettingTile(
-                icon: Icons.paid_rounded,
-                title: 'Pause payée',
-                subtitle: _isBreakPaid ? 'Heures incluses' : 'Heures déduites',
-                color: const Color(0xFF0F766E),
-                value: _isBreakPaid,
-                onChanged: (value) => setState(() => _isBreakPaid = value),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 22),
-        _SectionHeader(
-          icon: Icons.logout_rounded,
-          title: 'Session & Déconnexion',
-        ),
-        const SizedBox(height: 12),
-        _PremiumPanel(
-          isDark: isDark,
-          child: Column(
-            children: [
-              _DangerActionTile(
-                icon: Icons.logout_rounded,
-                title: 'Se déconnecter',
-                subtitle: 'Fermer la session actuelle et changer de matricule',
-                color: const Color(0xFFEF4444),
-                onTap: _confirmLogout,
-              ),
-            ],
-          ),
-        ),
       ],
     );
   }
 
-  Widget _securityTab(bool isDark, Color onSurface) {
-    return _SlideFadeGroup(
-      children: [
-        _SectionHeader(icon: Icons.tune_rounded, title: 'Fonctionnalités'),
-        const SizedBox(height: 12),
-        _PremiumPanel(
-          isDark: isDark,
-          child: Column(
-            children: [
-              _SwitchSettingTile(
-                icon: Icons.face_rounded,
-                title: 'Pointage par visage',
-                subtitle: _faceCheckinEnabled
-                    ? 'Caméra activée pour pointer'
-                    : 'Pointage manuel uniquement',
-                color: const Color(0xFF0F766E),
-                value: _faceCheckinEnabled,
-                onChanged: (value) =>
-                    setState(() => _faceCheckinEnabled = value),
-              ),
-              _PanelDivider(onSurface: onSurface),
-              _SwitchSettingTile(
-                icon: Icons.notifications_rounded,
-                title: 'Notifications',
-                subtitle: _notificationsEnabled
-                    ? 'Rappels actifs - ${_notificationDaysLabel()}'
-                    : 'Notifications coupées',
-                color: const Color(0xFFF97316),
-                value: _notificationsEnabled,
-                onChanged: _handleNotificationsChanged,
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _systemTab(bool isDark, Color onSurface) {
-    return _SlideFadeGroup(
-      children: [
-        _SectionHeader(
-          icon: Icons.cloud_upload_rounded,
-          title: 'Sauvegarde & restauration',
-        ),
-        const SizedBox(height: 12),
-        GridView.count(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          crossAxisCount: 2,
-          mainAxisSpacing: 12,
-          crossAxisSpacing: 12,
-          childAspectRatio: 1.18,
-          children: [
-            _BackupActionCard(
-              title: 'Sauvegarder',
-              subtitle: 'Créer un fichier',
-              icon: Icons.upload_rounded,
-              color: const Color(0xFF0F766E),
-              onTap: _exportBackup,
-            ),
-            _BackupActionCard(
-              title: 'Restaurer',
-              subtitle: 'Importer backup',
-              icon: Icons.download_rounded,
-              color: const Color(0xFF2563EB),
-              onTap: _restoreBackup,
-            ),
-          ],
-        ),
-      ],
-    );
-  }
 }
 
 class _SettingsTabs extends StatelessWidget {
@@ -1254,8 +808,6 @@ class _SettingsTabs extends StatelessWidget {
     final tabs = [
       (Icons.person_rounded, 'Compte'),
       (Icons.tune_rounded, 'Préférences'),
-      (Icons.lock_rounded, 'Sécurité'),
-      (Icons.inventory_2_rounded, 'Système'),
     ];
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
@@ -1788,607 +1340,6 @@ class _ThemeChoiceCard extends StatelessWidget {
   }
 }
 
-class _TimeDashboardTile extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String time;
-  final Color color;
-  final VoidCallback onTap;
-
-  const _TimeDashboardTile({
-    required this.icon,
-    required this.label,
-    required this.time,
-    required this.color,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final onSurface = Theme.of(context).colorScheme.onSurface;
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.07),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: color.withValues(alpha: 0.10)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _SoftIcon(icon: icon, color: color, size: 36),
-            const SizedBox(height: 14),
-            Text(
-              time,
-              style: TextStyle(
-                color: onSurface,
-                fontSize: 24,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-            Text(
-              label,
-              style: TextStyle(
-                color: onSurface.withValues(alpha: 0.48),
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _TimelineSummary extends StatelessWidget {
-  final String start;
-  final String end;
-  final int breakDuration;
-  final bool isBreakPaid;
-
-  const _TimelineSummary({
-    required this.start,
-    required this.end,
-    required this.breakDuration,
-    required this.isBreakPaid,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final onSurface = Theme.of(context).colorScheme.onSurface;
-    final total = _scheduledSummary(start, end, breakDuration, isBreakPaid);
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: const Color(0xFF2563EB).withValues(alpha: 0.07),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Text(
-                'Résumé journalier',
-                style: TextStyle(
-                  color: onSurface,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-              const Spacer(),
-              Text(
-                total,
-                style: const TextStyle(
-                  color: Color(0xFF2563EB),
-                  fontSize: 13,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(99),
-            child: const LinearProgressIndicator(
-              value: 0.82,
-              minHeight: 7,
-              backgroundColor: Color(0xFFE0F2FE),
-              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF2563EB)),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _NotificationDaysSheet extends StatefulWidget {
-  final List<int> initialDays;
-  final List<int> saturdayToThursday;
-  final List<int> sundayToThursday;
-
-  const _NotificationDaysSheet({
-    required this.initialDays,
-    required this.saturdayToThursday,
-    required this.sundayToThursday,
-  });
-
-  @override
-  State<_NotificationDaysSheet> createState() => _NotificationDaysSheetState();
-}
-
-class _NotificationDaysSheetState extends State<_NotificationDaysSheet> {
-  static const List<int> _customOrder = [6, 7, 1, 2, 3, 4];
-  late List<int> _selectedDays;
-
-  @override
-  void initState() {
-    super.initState();
-    _selectedDays = List<int>.from(widget.initialDays)..remove(DateTime.friday);
-    if (_selectedDays.isEmpty) {
-      _selectedDays = List<int>.from(widget.saturdayToThursday);
-    }
-  }
-
-  bool _sameDays(List<int> days) {
-    final selectedSet = _selectedDays.toSet();
-    final targetSet = days.toSet();
-    return selectedSet.length == targetSet.length &&
-        selectedSet.containsAll(targetSet);
-  }
-
-  void _selectPreset(List<int> days) {
-    HapticFeedback.selectionClick();
-    setState(() => _selectedDays = List<int>.from(days));
-  }
-
-  void _toggleDay(int day) {
-    HapticFeedback.selectionClick();
-    setState(() {
-      if (_selectedDays.contains(day)) {
-        if (_selectedDays.length == 1) return;
-        _selectedDays.remove(day);
-      } else {
-        _selectedDays.add(day);
-      }
-    });
-  }
-
-  String _dayLabel(int day) {
-    switch (day) {
-      case DateTime.monday:
-        return 'Lun.';
-      case DateTime.tuesday:
-        return 'Mar.';
-      case DateTime.wednesday:
-        return 'Mer.';
-      case DateTime.thursday:
-        return 'Jeu.';
-      case DateTime.saturday:
-        return 'Sam.';
-      case DateTime.sunday:
-        return 'Dim.';
-      default:
-        return 'Ven.';
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final onSurface = Theme.of(context).colorScheme.onSurface;
-    final surface = isDark ? const Color(0xFF17232D) : Colors.white;
-
-    return SafeArea(
-      top: false,
-      child: Container(
-        margin: const EdgeInsets.all(8),
-        padding: const EdgeInsets.fromLTRB(18, 12, 18, 20),
-        decoration: BoxDecoration(
-          color: surface,
-          borderRadius: BorderRadius.circular(34),
-          border: Border.all(
-            color: const Color(0xFFF97316).withValues(alpha: 0.14),
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: isDark ? 0.34 : 0.15),
-              blurRadius: 34,
-              offset: const Offset(0, -10),
-            ),
-          ],
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Center(
-              child: Container(
-                width: 42,
-                height: 5,
-                decoration: BoxDecoration(
-                  color: onSurface.withValues(alpha: 0.10),
-                  borderRadius: BorderRadius.circular(99),
-                ),
-              ),
-            ),
-            const SizedBox(height: 18),
-            Row(
-              children: [
-                _SoftIcon(
-                  icon: Icons.notifications_active_rounded,
-                  color: const Color(0xFFF97316),
-                  size: 44,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Plan des rappels',
-                        style: TextStyle(
-                          color: onSurface,
-                          fontSize: 20,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        'Les rappels suivent vos horaires par défaut.',
-                        style: TextStyle(
-                          color: onSurface.withValues(alpha: 0.50),
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 18),
-            _NotificationPresetCard(
-              title: 'Samedi à jeudi',
-              subtitle: 'Idéal pour une semaine de travail complète',
-              selected: _sameDays(widget.saturdayToThursday),
-              onTap: () => _selectPreset(widget.saturdayToThursday),
-            ),
-            const SizedBox(height: 10),
-            _NotificationPresetCard(
-              title: 'Dimanche à jeudi',
-              subtitle: 'Planning classique sans vendredi ni samedi',
-              selected: _sameDays(widget.sundayToThursday),
-              onTap: () => _selectPreset(widget.sundayToThursday),
-            ),
-            const SizedBox(height: 18),
-            Text(
-              'Jours personnalisés',
-              style: TextStyle(
-                color: onSurface,
-                fontSize: 14,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-            const SizedBox(height: 10),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                for (final day in _customOrder)
-                  _NotificationDayChip(
-                    label: _dayLabel(day),
-                    selected: _selectedDays.contains(day),
-                    onTap: () => _toggleDay(day),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 18),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: const Color(0xFF0F766E).withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(18),
-              ),
-              child: Row(
-                children: [
-                  const Icon(
-                    Icons.schedule_rounded,
-                    color: Color(0xFF0F766E),
-                    size: 20,
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      'Deux rappels seront préparés: arrivée le matin et départ le soir, sauf si le pointage est déjà fait.',
-                      style: TextStyle(
-                        color: onSurface.withValues(alpha: 0.62),
-                        fontSize: 12,
-                        height: 1.35,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 18),
-            SizedBox(
-              height: 54,
-              child: FilledButton.icon(
-                style: FilledButton.styleFrom(
-                  backgroundColor: const Color(0xFF0F766E),
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(18),
-                  ),
-                ),
-                onPressed: () => Navigator.pop(context, _selectedDays),
-                icon: const Icon(Icons.check_rounded),
-                label: const Text(
-                  'Activer les rappels',
-                  style: TextStyle(fontWeight: FontWeight.w900),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _NotificationPresetCard extends StatelessWidget {
-  final String title;
-  final String subtitle;
-  final bool selected;
-  final VoidCallback onTap;
-
-  const _NotificationPresetCard({
-    required this.title,
-    required this.subtitle,
-    required this.selected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final onSurface = Theme.of(context).colorScheme.onSurface;
-    final color = selected ? const Color(0xFF0F766E) : const Color(0xFFF97316);
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 140),
-          curve: Curves.easeOutCubic,
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: selected ? 0.12 : 0.06),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: color.withValues(alpha: selected ? 0.45 : 0.12),
-            ),
-          ),
-          child: Row(
-            children: [
-              Icon(
-                selected
-                    ? Icons.radio_button_checked_rounded
-                    : Icons.radio_button_unchecked_rounded,
-                color: color,
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: TextStyle(
-                        color: onSurface,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      subtitle,
-                      style: TextStyle(
-                        color: onSurface.withValues(alpha: 0.48),
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _NotificationDayChip extends StatelessWidget {
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  const _NotificationDayChip({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return ChoiceChip(
-      label: Text(label),
-      selected: selected,
-      onSelected: (_) => onTap(),
-      selectedColor: const Color(0xFF0F766E).withValues(alpha: 0.16),
-      labelStyle: TextStyle(
-        color: selected
-            ? const Color(0xFF0F766E)
-            : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.58),
-        fontSize: 12,
-        fontWeight: FontWeight.w900,
-      ),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(999),
-        side: BorderSide(
-          color: selected
-              ? const Color(0xFF0F766E).withValues(alpha: 0.40)
-              : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.08),
-        ),
-      ),
-    );
-  }
-}
-
-class _SwitchSettingTile extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final Color color;
-  final bool value;
-  final ValueChanged<bool> onChanged;
-
-  const _SwitchSettingTile({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.color,
-    required this.value,
-    required this.onChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final onSurface = Theme.of(context).colorScheme.onSurface;
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10),
-      child: Row(
-        children: [
-          _SoftIcon(icon: icon, color: color),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    color: onSurface,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  subtitle,
-                  style: TextStyle(
-                    color: onSurface.withValues(alpha: 0.48),
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Switch(value: value, onChanged: onChanged),
-        ],
-      ),
-    );
-  }
-}
-
-class _BackupActionCard extends StatefulWidget {
-  final String title;
-  final String subtitle;
-  final IconData icon;
-  final Color color;
-  final VoidCallback onTap;
-
-  const _BackupActionCard({
-    required this.title,
-    required this.subtitle,
-    required this.icon,
-    required this.color,
-    required this.onTap,
-  });
-
-  @override
-  State<_BackupActionCard> createState() => _BackupActionCardState();
-}
-
-class _BackupActionCardState extends State<_BackupActionCard> {
-  bool _pressed = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final onSurface = Theme.of(context).colorScheme.onSurface;
-    return AnimatedScale(
-      scale: _pressed ? 0.97 : 1,
-      duration: const Duration(milliseconds: 120),
-      curve: Curves.easeOutCubic,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(24),
-        onTapDown: (_) => setState(() => _pressed = true),
-        onTapCancel: () => setState(() => _pressed = false),
-        onTapUp: (_) => setState(() => _pressed = false),
-        onTap: widget.onTap,
-        child: Container(
-          padding: const EdgeInsets.all(15),
-          decoration: BoxDecoration(
-            color: Theme.of(context).cardColor,
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: widget.color.withValues(alpha: 0.12)),
-            boxShadow: [
-              BoxShadow(
-                color: widget.color.withValues(alpha: 0.10),
-                blurRadius: 16,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _SoftIcon(icon: widget.icon, color: widget.color, size: 42),
-              const Spacer(),
-              Text(
-                widget.title,
-                style: TextStyle(
-                  color: onSurface,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-              const SizedBox(height: 3),
-              Text(
-                widget.subtitle,
-                style: TextStyle(
-                  color: onSurface.withValues(alpha: 0.48),
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
 
 class _PremiumSaveButton extends StatelessWidget {
   final bool saving;
@@ -2504,25 +1455,48 @@ class _PanelDivider extends StatelessWidget {
 class _GlassRoundButton extends StatelessWidget {
   final IconData icon;
   final VoidCallback onTap;
+  final Color? color;
+  final Color? iconColor;
 
-  const _GlassRoundButton({required this.icon, required this.onTap});
+  const _GlassRoundButton({
+    required this.icon,
+    required this.onTap,
+    this.color,
+    this.iconColor,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final effectiveIconColor = iconColor ?? (isDark ? Colors.white : const Color(0xFF0F172A));
+    final effectiveBgColor = color ??
+        (isDark
+            ? Colors.white.withValues(alpha: 0.15)
+            : const Color(0xFF0F172A).withValues(alpha: 0.08));
+    final effectiveBorder = Border.all(
+      color: isDark
+          ? Colors.white.withValues(alpha: 0.16)
+          : const Color(0xFF0F172A).withValues(alpha: 0.12),
+    );
+
     return ClipRRect(
       borderRadius: BorderRadius.circular(16),
       child: BackdropFilter(
         filter: ui.ImageFilter.blur(sigmaX: 12, sigmaY: 12),
         child: Material(
-          color: Colors.white.withValues(alpha: 0.15),
+          color: effectiveBgColor,
           child: InkWell(
             onTap: onTap,
-            child: SizedBox(
+            child: Container(
               width: 44,
               height: 44,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                border: effectiveBorder,
+              ),
               child: Icon(
                 icon,
-                color: Colors.white,
+                color: effectiveIconColor,
                 size: 21,
               ),
             ),
@@ -2578,53 +1552,7 @@ class _HeaderBadge extends StatelessWidget {
   }
 }
 
-class _EditProfileButton extends StatelessWidget {
-  final VoidCallback onTap;
 
-  const _EditProfileButton({required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(999),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-        decoration: BoxDecoration(
-          color: isDark
-              ? Colors.white.withValues(alpha: 0.18)
-              : const Color(0xFFE2E8F0),
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(
-            color: isDark
-                ? Colors.white.withValues(alpha: 0.16)
-                : const Color(0xFFCBD5E1),
-          ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.edit_rounded,
-              color: isDark ? Colors.white : const Color(0xFF0F172A),
-              size: 14,
-            ),
-            const SizedBox(width: 6),
-            Text(
-              'Modifier',
-              style: TextStyle(
-                color: isDark ? Colors.white : const Color(0xFF0F172A),
-                fontSize: 11,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
 
 class _LogoutHeaderButton extends StatelessWidget {
   final VoidCallback onTap;
@@ -2670,81 +1598,7 @@ class _LogoutHeaderButton extends StatelessWidget {
   }
 }
 
-class _DangerActionTile extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final Color color;
-  final VoidCallback onTap;
 
-  const _DangerActionTile({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.color,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          child: Row(
-            children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: isDark ? 0.20 : 0.12),
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: color.withValues(alpha: isDark ? 0.35 : 0.20)),
-                ),
-                child: Icon(icon, color: color, size: 22),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: TextStyle(
-                        color: color,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      subtitle,
-                      style: TextStyle(
-                        color: (isDark ? Colors.white : const Color(0xFF0F172A))
-                            .withValues(alpha: 0.58),
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Icon(
-                Icons.arrow_forward_ios_rounded,
-                size: 14,
-                color: color.withValues(alpha: 0.60),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
 
 class _HeaderOrb extends StatelessWidget {
   final double size;
@@ -2947,23 +1801,4 @@ class _SocialButton extends StatelessWidget {
   }
 }
 
-String _scheduledSummary(
-  String start,
-  String end,
-  int breakDuration,
-  bool isBreakPaid,
-) {
-  double toHour(String value) {
-    final parts = value.split(':');
-    return (double.tryParse(parts.first) ?? 0) +
-        ((parts.length > 1 ? double.tryParse(parts[1]) ?? 0 : 0) / 60);
-  }
 
-  var hours = toHour(end) - toHour(start);
-  if (hours < 0) hours += 24;
-  if (!isBreakPaid) hours -= breakDuration / 60;
-  if (hours < 0) hours = 0;
-  final h = hours.floor();
-  final m = ((hours - h) * 60).round();
-  return '${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')} h';
-}

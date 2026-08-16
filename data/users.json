@@ -1,0 +1,18 @@
+[
+  {
+    "id": "usr_admin",
+    "username": "admin",
+    "passwordHash": "$2b$10$QnEF8ez.0D02GWNN5uoEpuRhxAwV7U5Wb0Orblwwt2dkaSm4/iKwC",
+    "fullName": "Administrateur Système",
+    "role": "ADMIN",
+    "createdAt": "2026-08-16T20:04:56.761Z"
+  },
+  {
+    "id": "usr_supervisor",
+    "username": "supervisor",
+    "passwordHash": "$2b$10$QnEF8ez.0D02GWNN5uoEpupLm3Yv3uXHg4FaeSozJALP5c1bMLi6q",
+    "fullName": "Superviseur RH",
+    "role": "USER",
+    "createdAt": "2026-08-16T20:04:56.826Z"
+  }
+]
