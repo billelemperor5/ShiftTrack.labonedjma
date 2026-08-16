@@ -233,9 +233,10 @@ class ZKBioTimeService {
 
   /// 100% Read-Only: Fetch Employee details by matricule (emp_code)
   Future<ZKBioTimeEmployee?> getEmployee(String empCode) async {
-    // 1. Try Cloud Tunnel, Local IP, and Localhost proxies if in Web
+    // 1. Try Cloudflare Tunnel, Local IP, and Localhost proxies if in Web
     if (kIsWeb) {
       final proxyList = [
+        'https://requirements-adware-franklin-populations.trycloudflare.com',
         'https://labonedjma-biotime.loca.lt',
         'https://shifttrack-labonedjma.onrender.com',
         'http://192.168.0.188:3000',
@@ -287,9 +288,10 @@ class ZKBioTimeService {
     required String startDate, // YYYY-MM-DD
     required String endDate,   // YYYY-MM-DD
   }) async {
-    // 1. Try Cloud Tunnel, Local IP, and Localhost proxies if in Web
+    // 1. Try Cloudflare Tunnel, Local IP, and Localhost proxies if in Web
     if (kIsWeb) {
       final proxyList = [
+        'https://requirements-adware-franklin-populations.trycloudflare.com',
         'https://labonedjma-biotime.loca.lt',
         'https://shifttrack-labonedjma.onrender.com',
         'http://192.168.0.188:3000',
