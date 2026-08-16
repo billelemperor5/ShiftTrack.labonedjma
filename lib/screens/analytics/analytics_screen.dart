@@ -2552,7 +2552,7 @@ class _TeamTab extends StatelessWidget {
                       color: onSurface,
                     ),
                     decoration: InputDecoration(
-                      hintText: 'Ex: 40754',
+                      hintText: 'Ex: 12345',
                       hintStyle: TextStyle(
                         color: onSurface.withValues(alpha: 0.3),
                       ),

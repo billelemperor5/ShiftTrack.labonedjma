@@ -31,20 +31,22 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final attendance = context.read<AttendanceProvider>();
-      final empCode = attendance.currentEmpCode.isNotEmpty ? attendance.currentEmpCode : '40754';
-      attendance.fetchAttendance(empCode).then((emp) {
-        if (emp != null && mounted) {
-          final first = emp.firstName.isNotEmpty ? emp.firstName : emp.fullName;
-          final last = emp.lastName;
-          final dept = emp.department.isNotEmpty ? emp.department : 'Direction';
-          context.read<AppProvider>().setZkUserProfile(
-            firstName: first,
-            lastName: last,
-            department: dept,
-            matricule: empCode,
-          );
-        }
-      });
+      final empCode = attendance.currentEmpCode;
+      if (empCode.isNotEmpty) {
+        attendance.fetchAttendance(empCode).then((emp) {
+          if (emp != null && mounted) {
+            final first = emp.firstName.isNotEmpty ? emp.firstName : emp.fullName;
+            final last = emp.lastName;
+            final dept = emp.department.isNotEmpty ? emp.department : 'Direction';
+            context.read<AppProvider>().setZkUserProfile(
+              firstName: first,
+              lastName: last,
+              department: dept,
+              matricule: empCode,
+            );
+          }
+        });
+      }
     });
   }
 
@@ -1802,7 +1804,8 @@ class _EnterpriseHeaderBannerState extends State<_EnterpriseHeaderBanner> {
                                               isLoading: attendance.isLoading,
                                               onTap: () async {
                                                 HapticFeedback.mediumImpact();
-                                                final empCode = attendance.currentEmpCode.isNotEmpty ? attendance.currentEmpCode : '40754';
+                                                final empCode = attendance.currentEmpCode;
+                                                if (empCode.isEmpty) return;
                                                 final res = await attendance.fetchAttendance(empCode, forceSync: true);
                                                 if (context.mounted) {
                                                   ScaffoldMessenger.of(context).showSnackBar(

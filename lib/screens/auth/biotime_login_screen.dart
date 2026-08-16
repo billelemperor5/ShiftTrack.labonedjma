@@ -256,7 +256,7 @@ class _BioTimeLoginScreenState extends State<BioTimeLoginScreen> with SingleTick
                               letterSpacing: 1.2,
                             ),
                             decoration: InputDecoration(
-                              hintText: 'Ex: 40754, 30031...',
+                              hintText: 'Entrez votre matricule...',
                               hintStyle: TextStyle(
                                 color: isDark ? Colors.grey[600] : Colors.grey[400],
                                 fontWeight: FontWeight.normal,

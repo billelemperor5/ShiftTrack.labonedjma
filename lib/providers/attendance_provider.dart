@@ -13,7 +13,7 @@ class AttendanceProvider extends ChangeNotifier {
   String? _errorMessage;
   DateTime _selectedMonth = DateTime.now();
   String _viewFilter = 'bioOnly'; // 'bioOnly' or 'all'
-  String _currentEmpCode = '40754';
+  String _currentEmpCode = '';
 
   MonthAttendanceReport? get currentReport => _currentReport;
   ZKBioTimeEmployee? get currentEmployee => _currentEmployee;
