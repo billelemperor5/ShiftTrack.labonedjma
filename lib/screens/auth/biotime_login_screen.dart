@@ -62,20 +62,31 @@ class _BioTimeLoginScreenState extends State<BioTimeLoginScreen> with SingleTick
 
       if (!mounted) return;
 
-      if (emp == null && attendanceProvider.records.isEmpty && (attendanceProvider.currentReport?.days.isEmpty ?? true)) {
+      if (emp == null && (attendanceProvider.currentReport == null || attendanceProvider.currentReport!.days.isEmpty)) {
         setState(() {
           _errorMessage = 'Matricule non trouvé ou serveur inaccessible. Vérifiez le numéro "$matricule".';
         });
         return;
       }
 
-      final first = (emp?.firstName.isNotEmpty == true)
-          ? emp!.firstName
-          : (emp?.fullName.isNotEmpty == true ? emp!.fullName.split(' ').first : 'Employé $matricule');
-      final last = (emp?.lastName.isNotEmpty == true)
-          ? emp!.lastName
-          : (emp?.fullName.isNotEmpty == true && emp!.fullName.contains(' ') ? emp.fullName.split(' ').sublist(1).join(' ') : '');
-      final dept = emp?.department.isNotEmpty == true ? emp!.department : 'Direction';
+      final empName = emp?.fullName.isNotEmpty == true 
+          ? emp!.fullName 
+          : (attendanceProvider.currentReport?.empName.isNotEmpty == true 
+              ? attendanceProvider.currentReport!.empName 
+              : 'Employé $matricule');
+
+      final nameParts = empName.split(' ');
+      final first = emp?.firstName.isNotEmpty == true 
+          ? emp!.firstName 
+          : (nameParts.isNotEmpty ? nameParts.first : 'Employé');
+      final last = emp?.lastName.isNotEmpty == true 
+          ? emp!.lastName 
+          : (nameParts.length > 1 ? nameParts.sublist(1).join(' ') : '');
+      final dept = emp?.department.isNotEmpty == true 
+          ? emp!.department 
+          : (attendanceProvider.currentReport?.department.isNotEmpty == true 
+              ? attendanceProvider.currentReport!.department 
+              : 'Direction');
 
       if (_rememberMe) {
         await context.read<AppProvider>().setZkUserProfile(

@@ -236,16 +236,7 @@ class ZKBioTimeService {
   Future<ZKBioTimeEmployee?> getEmployee(String empCode) async {
     final cleanCode = empCode.trim();
 
-    // 1. First Priority: Firebase Firestore (Instant, Cloud, 0-CORS)
-    try {
-      final firestoreEmp = await FirestoreService().getEmployee(cleanCode);
-      if (firestoreEmp != null) {
-        _currentUser = firestoreEmp;
-        return firestoreEmp;
-      }
-    } catch (_) {}
-
-    // 2. Try Cloud and Local proxies if in Web
+    // 1. Live Proxy Fetch (Always Fresh)
     if (kIsWeb) {
       final currentOrigin = Uri.base.origin;
       final proxyList = [
@@ -256,17 +247,20 @@ class ZKBioTimeService {
       ];
       for (final p in proxyList) {
         try {
-          final proxyUrl = Uri.parse('$p/api/attendance/search?matricule=${empCode.trim()}');
+          final proxyUrl = Uri.parse('$p/api/attendance/search?matricule=$cleanCode&forceSync=true');
           final response = await http.get(
             proxyUrl,
-            headers: {'Bypass-Tunnel-Reminder': 'true'},
-          ).timeout(const Duration(seconds: 15));
+            headers: {
+              'Bypass-Tunnel-Reminder': 'true',
+              'Cache-Control': 'no-cache',
+            },
+          ).timeout(const Duration(seconds: 30));
           if (response.statusCode == 200) {
             final body = jsonDecode(response.body);
             if (body['success'] == true && body['data']?['employee'] != null) {
               final emp = ZKBioTimeEmployee.fromJson(body['data']['employee']);
               _currentUser = emp;
-              FirestoreService().saveEmployee(emp); // Cache to Firebase Firestore!
+              FirestoreService().saveEmployee(emp); // Sync to Firestore
               return emp;
             }
           }
@@ -274,9 +268,9 @@ class ZKBioTimeService {
       }
     }
 
-    // 3. Direct ZKBioTime call
+    // 2. Direct ZKBioTime call
     try {
-      final url = Uri.parse('$_serverUrl/personnel/api/employees/?emp_code=${empCode.trim()}');
+      final url = Uri.parse('$_serverUrl/personnel/api/employees/?emp_code=$cleanCode');
       final response = await http.get(url, headers: _getHeaders()).timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
@@ -289,11 +283,20 @@ class ZKBioTimeService {
           return emp;
         }
       }
-      return null;
     } catch (e) {
       debugPrint('Error getting employee: $e');
-      return null;
     }
+
+    // 3. Fallback: Firebase Firestore Cache (if proxy/network offline)
+    try {
+      final firestoreEmp = await FirestoreService().getEmployee(cleanCode);
+      if (firestoreEmp != null) {
+        _currentUser = firestoreEmp;
+        return firestoreEmp;
+      }
+    } catch (_) {}
+
+    return null;
   }
 
   /// 100% Read-Only: Fetch Biometric Transactions for a Date Range
@@ -304,35 +307,7 @@ class ZKBioTimeService {
   }) async {
     final cleanCode = empCode.trim();
 
-    // 1. First Priority: Firebase Firestore (Instant, Cloud, 0-CORS)
-    try {
-      final firestoreData = await FirestoreService().getAttendanceData(cleanCode);
-      if (firestoreData != null && firestoreData['days'] is List) {
-        final days = firestoreData['days'] as List;
-        final List<ZKBioTimePunch> punchesList = [];
-        for (final d in days) {
-          if (d is Map && d['rawPunches'] is List) {
-            for (final p in d['rawPunches']) {
-              if (p is Map) {
-                punchesList.add(ZKBioTimePunch(
-                  id: p['id'] is int ? p['id'] : int.tryParse(p['id']?.toString() ?? '0') ?? 0,
-                  empCode: cleanCode,
-                  punchTime: p['punchTime']?.toString() ?? p['punch_time']?.toString() ?? '',
-                  punchState: p['punchState']?.toString() ?? p['punch_state']?.toString() ?? '',
-                  terminalAlias: p['terminalAlias']?.toString() ?? p['terminal_alias']?.toString() ?? 'BioTime',
-                ));
-              }
-            }
-          }
-        }
-        if (punchesList.isNotEmpty) {
-          punchesList.sort((a, b) => a.punchTime.compareTo(b.punchTime));
-          return punchesList;
-        }
-      }
-    } catch (_) {}
-
-    // 2. Try Cloud and Local proxies if in Web
+    // 1. Live Proxy Fetch (Always Fresh Live Data)
     if (kIsWeb) {
       final currentOrigin = Uri.base.origin;
       final proxyList = [
@@ -344,14 +319,18 @@ class ZKBioTimeService {
       for (final p in proxyList) {
         try {
           final proxyUrl = Uri.parse(
-            '$p/api/attendance/search?matricule=${empCode.trim()}'
+            '$p/api/attendance/search?matricule=$cleanCode'
             '&startDate=${Uri.encodeComponent(startDate)}'
-            '&endDate=${Uri.encodeComponent(endDate)}',
+            '&endDate=${Uri.encodeComponent(endDate)}'
+            '&forceSync=true',
           );
           final response = await http.get(
             proxyUrl,
-            headers: {'Bypass-Tunnel-Reminder': 'true'},
-          ).timeout(const Duration(seconds: 20));
+            headers: {
+              'Bypass-Tunnel-Reminder': 'true',
+              'Cache-Control': 'no-cache',
+            },
+          ).timeout(const Duration(seconds: 35));
           if (response.statusCode == 200) {
             final body = jsonDecode(response.body);
             if (body['success'] == true && body['data'] != null) {
@@ -398,7 +377,7 @@ class ZKBioTimeService {
       final endFormatted = '$endDate 23:59:59';
       
       final url = Uri.parse(
-        '$_serverUrl/iclock/api/transactions/?emp_code=${empCode.trim()}'
+        '$_serverUrl/iclock/api/transactions/?emp_code=$cleanCode'
         '&start_time=${Uri.encodeComponent(startFormatted)}'
         '&end_time=${Uri.encodeComponent(endFormatted)}'
         '&page_size=1000',
@@ -415,11 +394,39 @@ class ZKBioTimeService {
           return punches;
         }
       }
-      return [];
     } catch (e) {
       debugPrint('Error getting transactions: $e');
-      return [];
     }
+
+    // 3. Fallback: Firebase Firestore Cache (if offline or server unreachable)
+    try {
+      final firestoreData = await FirestoreService().getAttendanceData(cleanCode);
+      if (firestoreData != null && firestoreData['days'] is List) {
+        final days = firestoreData['days'] as List;
+        final List<ZKBioTimePunch> punchesList = [];
+        for (final d in days) {
+          if (d is Map && d['rawPunches'] is List) {
+            for (final p in d['rawPunches']) {
+              if (p is Map) {
+                punchesList.add(ZKBioTimePunch(
+                  id: p['id'] is int ? p['id'] : int.tryParse(p['id']?.toString() ?? '0') ?? 0,
+                  empCode: cleanCode,
+                  punchTime: p['punchTime']?.toString() ?? p['punch_time']?.toString() ?? '',
+                  punchState: p['punchState']?.toString() ?? p['punch_state']?.toString() ?? '',
+                  terminalAlias: p['terminalAlias']?.toString() ?? p['terminal_alias']?.toString() ?? 'BioTime',
+                ));
+              }
+            }
+          }
+        }
+        if (punchesList.isNotEmpty) {
+          punchesList.sort((a, b) => a.punchTime.compareTo(b.punchTime));
+          return punchesList;
+        }
+      }
+    } catch (_) {}
+
+    return [];
   }
 
   /// Logout
