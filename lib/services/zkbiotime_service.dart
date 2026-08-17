@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
+import 'firestore_service.dart';
 
 class ZKBioTimeEmployee {
   final int id;
@@ -233,7 +234,18 @@ class ZKBioTimeService {
 
   /// 100% Read-Only: Fetch Employee details by matricule (emp_code)
   Future<ZKBioTimeEmployee?> getEmployee(String empCode) async {
-    // 1. Try Cloud and Local proxies if in Web
+    final cleanCode = empCode.trim();
+
+    // 1. First Priority: Firebase Firestore (Instant, Cloud, 0-CORS)
+    try {
+      final firestoreEmp = await FirestoreService().getEmployee(cleanCode);
+      if (firestoreEmp != null) {
+        _currentUser = firestoreEmp;
+        return firestoreEmp;
+      }
+    } catch (_) {}
+
+    // 2. Try Cloud and Local proxies if in Web
     if (kIsWeb) {
       final currentOrigin = Uri.base.origin;
       final proxyList = [
@@ -288,7 +300,37 @@ class ZKBioTimeService {
     required String startDate, // YYYY-MM-DD
     required String endDate,   // YYYY-MM-DD
   }) async {
-    // 1. Try Cloud and Local proxies if in Web
+    final cleanCode = empCode.trim();
+
+    // 1. First Priority: Firebase Firestore (Instant, Cloud, 0-CORS)
+    try {
+      final firestoreData = await FirestoreService().getAttendanceData(cleanCode);
+      if (firestoreData != null && firestoreData['days'] is List) {
+        final days = firestoreData['days'] as List;
+        final List<ZKBioTimePunch> punchesList = [];
+        for (final d in days) {
+          if (d is Map && d['rawPunches'] is List) {
+            for (final p in d['rawPunches']) {
+              if (p is Map) {
+                punchesList.add(ZKBioTimePunch(
+                  id: p['id'] is int ? p['id'] : int.tryParse(p['id']?.toString() ?? '0') ?? 0,
+                  empCode: cleanCode,
+                  punchTime: p['punchTime']?.toString() ?? p['punch_time']?.toString() ?? '',
+                  punchState: p['punchState']?.toString() ?? p['punch_state']?.toString() ?? '',
+                  terminalAlias: p['terminalAlias']?.toString() ?? p['terminal_alias']?.toString() ?? 'BioTime',
+                ));
+              }
+            }
+          }
+        }
+        if (punchesList.isNotEmpty) {
+          punchesList.sort((a, b) => a.punchTime.compareTo(b.punchTime));
+          return punchesList;
+        }
+      }
+    } catch (_) {}
+
+    // 2. Try Cloud and Local proxies if in Web
     if (kIsWeb) {
       final currentOrigin = Uri.base.origin;
       final proxyList = [
