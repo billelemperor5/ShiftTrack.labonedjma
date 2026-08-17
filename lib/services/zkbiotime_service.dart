@@ -236,16 +236,13 @@ class ZKBioTimeService {
   Future<ZKBioTimeEmployee?> getEmployee(String empCode) async {
     final cleanCode = empCode.trim();
 
-    // 1. Live Proxy Fetch (Always Fresh)
+    // 1. Fast Live Proxy Fetch (Vercel Serverless)
     if (kIsWeb) {
       final currentOrigin = Uri.base.origin;
       final proxyList = [
         'https://shift-track-labonedjma.vercel.app',
-        'https://shifttrack-labonedjma.vercel.app',
-        'https://shifttrack-labonedjma.onrender.com',
         if (currentOrigin.isNotEmpty && !currentOrigin.startsWith('file:') && !currentOrigin.contains('web.app') && !currentOrigin.contains('firebase')) currentOrigin,
-        'http://localhost:3000',
-        'http://192.168.0.188:3000',
+        'https://shifttrack-labonedjma.onrender.com',
       ];
       for (final p in proxyList) {
         try {
@@ -256,7 +253,7 @@ class ZKBioTimeService {
               'Bypass-Tunnel-Reminder': 'true',
               'Cache-Control': 'no-cache',
             },
-          ).timeout(const Duration(seconds: 30));
+          ).timeout(const Duration(seconds: 10));
           if (response.statusCode == 200) {
             final body = jsonDecode(response.body);
             if (body['success'] == true && body['data']?['employee'] != null) {
@@ -273,7 +270,7 @@ class ZKBioTimeService {
     // 2. Direct ZKBioTime call
     try {
       final url = Uri.parse('$_serverUrl/personnel/api/employees/?emp_code=$cleanCode');
-      final response = await http.get(url, headers: _getHeaders()).timeout(const Duration(seconds: 10));
+      final response = await http.get(url, headers: _getHeaders()).timeout(const Duration(seconds: 8));
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -309,16 +306,13 @@ class ZKBioTimeService {
   }) async {
     final cleanCode = empCode.trim();
 
-    // 1. Live Proxy Fetch (Always Fresh Live Data)
+    // 1. Fast Live Proxy Fetch (Vercel Serverless)
     if (kIsWeb) {
       final currentOrigin = Uri.base.origin;
       final proxyList = [
         'https://shift-track-labonedjma.vercel.app',
-        'https://shifttrack-labonedjma.vercel.app',
-        'https://shifttrack-labonedjma.onrender.com',
         if (currentOrigin.isNotEmpty && !currentOrigin.startsWith('file:') && !currentOrigin.contains('web.app') && !currentOrigin.contains('firebase')) currentOrigin,
-        'http://localhost:3000',
-        'http://192.168.0.188:3000',
+        'https://shifttrack-labonedjma.onrender.com',
       ];
       for (final p in proxyList) {
         try {
@@ -334,7 +328,7 @@ class ZKBioTimeService {
               'Bypass-Tunnel-Reminder': 'true',
               'Cache-Control': 'no-cache',
             },
-          ).timeout(const Duration(seconds: 35));
+          ).timeout(const Duration(seconds: 10));
           if (response.statusCode == 200) {
             final body = jsonDecode(response.body);
             if (body['success'] == true && body['data'] != null) {
@@ -364,10 +358,8 @@ class ZKBioTimeService {
                     }
                   }
                 }
-                if (punchesList.isNotEmpty) {
-                  punchesList.sort((a, b) => a.punchTime.compareTo(b.punchTime));
-                  return punchesList;
-                }
+                punchesList.sort((a, b) => a.punchTime.compareTo(b.punchTime));
+                return punchesList;
               }
             }
           }
