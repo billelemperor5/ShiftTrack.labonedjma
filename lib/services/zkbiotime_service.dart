@@ -240,8 +240,8 @@ class ZKBioTimeService {
     if (kIsWeb) {
       final currentOrigin = Uri.base.origin;
       final proxyList = [
-        'https://shifttrack-labonedjma.vercel.app',
         'https://shift-track-labonedjma.vercel.app',
+        'https://shifttrack-labonedjma.vercel.app',
         'https://shifttrack-labonedjma.onrender.com',
         if (currentOrigin.isNotEmpty && !currentOrigin.startsWith('file:') && !currentOrigin.contains('web.app') && !currentOrigin.contains('firebase')) currentOrigin,
         'http://localhost:3000',
@@ -313,8 +313,8 @@ class ZKBioTimeService {
     if (kIsWeb) {
       final currentOrigin = Uri.base.origin;
       final proxyList = [
-        'https://shifttrack-labonedjma.vercel.app',
         'https://shift-track-labonedjma.vercel.app',
+        'https://shifttrack-labonedjma.vercel.app',
         'https://shifttrack-labonedjma.onrender.com',
         if (currentOrigin.isNotEmpty && !currentOrigin.startsWith('file:') && !currentOrigin.contains('web.app') && !currentOrigin.contains('firebase')) currentOrigin,
         'http://localhost:3000',
