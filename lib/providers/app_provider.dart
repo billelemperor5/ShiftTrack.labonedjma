@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hive/hive.dart';
 import '../models/user_profile.dart';
 import '../services/hive_service.dart';
 
@@ -12,6 +13,9 @@ class AppProvider extends ChangeNotifier {
   String get currentLocale => _userProfile?.locale ?? 'ar';
   String get currentTheme => _userProfile?.themeMode ?? _tempTheme;
 
+  String _savedMatricule = '';
+  String get savedMatricule => _savedMatricule;
+
   AppProvider() {
     _loadUser();
   }
@@ -23,6 +27,10 @@ class AppProvider extends ChangeNotifier {
     if (box.isNotEmpty) {
       _userProfile = box.getAt(0);
     }
+    try {
+      final settingsBox = Hive.box(HiveService.settingsBoxName);
+      _savedMatricule = settingsBox.get('savedMatricule', defaultValue: '')?.toString() ?? '';
+    } catch (_) {}
     notifyListeners();
   }
 
@@ -49,6 +57,15 @@ class AppProvider extends ChangeNotifier {
     if (profile.logoPath == null || profile.logoPath!.isEmpty) {
       profile.logoPath = 'assets/images/official_logo.jpg';
     }
+
+    if (matricule != null && matricule.isNotEmpty) {
+      _savedMatricule = matricule;
+      try {
+        final settingsBox = Hive.box(HiveService.settingsBoxName);
+        await settingsBox.put('savedMatricule', matricule);
+      } catch (_) {}
+    }
+
     await saveProfile(profile);
   }
 
@@ -63,11 +80,19 @@ class AppProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  bool get isLoggedIn => _userProfile != null && _userProfile!.isFirstLaunchDone;
+  bool get isLoggedIn =>
+      _userProfile != null &&
+      _userProfile!.isFirstLaunchDone &&
+      (_savedMatricule.isNotEmpty || (_userProfile!.firstName != null && _userProfile!.firstName!.isNotEmpty && _userProfile!.firstName != 'Employé'));
 
   Future<void> logout() async {
     final box = HiveService.getUserBox();
     await box.clear();
+    try {
+      final settingsBox = Hive.box(HiveService.settingsBoxName);
+      await settingsBox.delete('savedMatricule');
+    } catch (_) {}
+    _savedMatricule = '';
     _userProfile = null;
     notifyListeners();
   }

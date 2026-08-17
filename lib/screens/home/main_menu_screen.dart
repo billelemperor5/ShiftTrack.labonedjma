@@ -31,8 +31,12 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final attendance = context.read<AttendanceProvider>();
-      final empCode = attendance.currentEmpCode;
-      if (empCode.isNotEmpty) {
+      final appProvider = context.read<AppProvider>();
+      final empCode = attendance.currentEmpCode.isNotEmpty
+          ? attendance.currentEmpCode
+          : appProvider.savedMatricule;
+
+      if (empCode.isNotEmpty && (attendance.currentReport == null || attendance.currentReport!.days.isEmpty)) {
         attendance.fetchAttendance(empCode).then((emp) {
           if (emp != null && mounted) {
             final first = emp.firstName.isNotEmpty ? emp.firstName : emp.fullName;
