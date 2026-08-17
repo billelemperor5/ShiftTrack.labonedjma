@@ -83,7 +83,7 @@ app.use((err, req, res, next) => {
   });
 });
 
-if (process.env.NODE_ENV !== 'test') {
+if (require.main === module && process.env.NODE_ENV !== 'test') {
   app.listen(PORT, () => {
     console.log(`====================================================`);
     console.log(`🚀 BILLEL ATTENDANCE - ZKTeco Dashboard`);

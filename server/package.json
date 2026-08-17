@@ -1,19 +1,23 @@
 {
-  "name": "billel-attendance",
+  "name": "shifttrack-backend",
   "version": "1.0.0",
-  "description": "ZKTeco ZKBioTime 9.0.3 Attendance & Overtime Enterprise Dashboard",
-  "main": "src/server.js",
+  "description": "ZKTeco ZKBioTime 9.0.3 Attendance & Overtime Enterprise Backend for Firebase",
+  "main": "index.js",
   "scripts": {
     "start": "node src/server.js",
     "dev": "node src/server.js",
-    "test": "node -e \"console.log('All backend components initialized.')\""
+    "serve": "firebase emulators:start --only functions",
+    "shell": "firebase functions:shell",
+    "deploy": "firebase deploy --only functions",
+    "logs": "firebase functions:log"
   },
   "keywords": [
     "zkteco",
     "zkbiotime",
     "attendance",
     "overtime",
-    "dashboard"
+    "dashboard",
+    "firebase"
   ],
   "author": "Antigravity",
   "license": "ISC",
@@ -23,9 +27,14 @@
     "cors": "^2.8.5",
     "dotenv": "^17.3.1",
     "exceljs": "^4.4.0",
-    "express": "^5.2.1",
+    "express": "^4.21.2",
+    "firebase-admin": "^13.0.2",
+    "firebase-functions": "^6.3.2",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.3",
     "pdfkit": "^0.17.2"
+  },
+  "engines": {
+    "node": "20"
   }
 }

@@ -121,7 +121,7 @@ class ZKBioTimePunch {
 
 class ZKBioTimeService {
   static const String defaultServerUrl = 'http://105.96.0.211:8080';
-  static const String defaultProxyUrl = 'https://shifttrack-labonedjma.onrender.com';
+  static const String defaultProxyUrl = 'https://shifttrack-labonedjma.web.app';
   static const String defaultUsername = 'billel.bouraba';
   
   String _serverUrl = defaultServerUrl;
@@ -235,9 +235,11 @@ class ZKBioTimeService {
   Future<ZKBioTimeEmployee?> getEmployee(String empCode) async {
     // 1. Try Cloud and Local proxies if in Web
     if (kIsWeb) {
+      final currentOrigin = Uri.base.origin;
       final proxyList = [
-        'https://shifttrack-labonedjma.onrender.com',
-        'http://192.168.0.188:3000',
+        if (currentOrigin.isNotEmpty && !currentOrigin.startsWith('file:')) currentOrigin,
+        'https://shifttrack-labonedjma.web.app',
+        'https://shifttrack-labonedjma.firebaseapp.com',
         'http://localhost:3000',
       ];
       for (final p in proxyList) {
@@ -288,9 +290,11 @@ class ZKBioTimeService {
   }) async {
     // 1. Try Cloud and Local proxies if in Web
     if (kIsWeb) {
+      final currentOrigin = Uri.base.origin;
       final proxyList = [
-        'https://shifttrack-labonedjma.onrender.com',
-        'http://192.168.0.188:3000',
+        if (currentOrigin.isNotEmpty && !currentOrigin.startsWith('file:')) currentOrigin,
+        'https://shifttrack-labonedjma.web.app',
+        'https://shifttrack-labonedjma.firebaseapp.com',
         'http://localhost:3000',
       ];
       for (final p in proxyList) {
