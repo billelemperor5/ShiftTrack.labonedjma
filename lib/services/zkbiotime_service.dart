@@ -249,10 +249,10 @@ class ZKBioTimeService {
     if (kIsWeb) {
       final currentOrigin = Uri.base.origin;
       final proxyList = [
-        if (currentOrigin.isNotEmpty && !currentOrigin.startsWith('file:')) currentOrigin,
-        'https://shifttrack-labonedjma.web.app',
-        'https://shifttrack-labonedjma.firebaseapp.com',
+        'https://shifttrack-labonedjma.onrender.com',
+        if (currentOrigin.isNotEmpty && !currentOrigin.startsWith('file:') && !currentOrigin.contains('web.app') && !currentOrigin.contains('firebase')) currentOrigin,
         'http://localhost:3000',
+        'http://192.168.0.188:3000',
       ];
       for (final p in proxyList) {
         try {
@@ -260,12 +260,13 @@ class ZKBioTimeService {
           final response = await http.get(
             proxyUrl,
             headers: {'Bypass-Tunnel-Reminder': 'true'},
-          ).timeout(const Duration(seconds: 10));
+          ).timeout(const Duration(seconds: 15));
           if (response.statusCode == 200) {
             final body = jsonDecode(response.body);
             if (body['success'] == true && body['data']?['employee'] != null) {
               final emp = ZKBioTimeEmployee.fromJson(body['data']['employee']);
               _currentUser = emp;
+              FirestoreService().saveEmployee(emp); // Cache to Firebase Firestore!
               return emp;
             }
           }
@@ -273,7 +274,7 @@ class ZKBioTimeService {
       }
     }
 
-    // 2. Direct ZKBioTime call
+    // 3. Direct ZKBioTime call
     try {
       final url = Uri.parse('$_serverUrl/personnel/api/employees/?emp_code=${empCode.trim()}');
       final response = await http.get(url, headers: _getHeaders()).timeout(const Duration(seconds: 10));
@@ -284,6 +285,7 @@ class ZKBioTimeService {
         if (list is List && list.isNotEmpty) {
           final emp = ZKBioTimeEmployee.fromJson(list.first);
           _currentUser = emp;
+          FirestoreService().saveEmployee(emp);
           return emp;
         }
       }
@@ -334,10 +336,10 @@ class ZKBioTimeService {
     if (kIsWeb) {
       final currentOrigin = Uri.base.origin;
       final proxyList = [
-        if (currentOrigin.isNotEmpty && !currentOrigin.startsWith('file:')) currentOrigin,
-        'https://shifttrack-labonedjma.web.app',
-        'https://shifttrack-labonedjma.firebaseapp.com',
+        'https://shifttrack-labonedjma.onrender.com',
+        if (currentOrigin.isNotEmpty && !currentOrigin.startsWith('file:') && !currentOrigin.contains('web.app') && !currentOrigin.contains('firebase')) currentOrigin,
         'http://localhost:3000',
+        'http://192.168.0.188:3000',
       ];
       for (final p in proxyList) {
         try {
@@ -349,7 +351,7 @@ class ZKBioTimeService {
           final response = await http.get(
             proxyUrl,
             headers: {'Bypass-Tunnel-Reminder': 'true'},
-          ).timeout(const Duration(seconds: 15));
+          ).timeout(const Duration(seconds: 20));
           if (response.statusCode == 200) {
             final body = jsonDecode(response.body);
             if (body['success'] == true && body['data'] != null) {
@@ -357,9 +359,13 @@ class ZKBioTimeService {
                 try {
                   final emp = ZKBioTimeEmployee.fromJson(body['data']['employee']);
                   _currentUser = emp;
+                  FirestoreService().saveEmployee(emp);
                 } catch (_) {}
               }
               if (body['data']['days'] is List) {
+                try {
+                  FirestoreService().saveAttendanceData(cleanCode, Map<String, dynamic>.from(body['data']));
+                } catch (_) {}
                 final days = body['data']['days'] as List;
                 final List<ZKBioTimePunch> punchesList = [];
                 for (final d in days) {
