@@ -1691,18 +1691,7 @@ class _EnterpriseHeaderBannerState extends State<_EnterpriseHeaderBanner> {
                     ? widget.name
                     : (attendance.currentEmpCode.isNotEmpty ? 'Employé ${attendance.currentEmpCode}' : 'Collaborateur')));
         final dynamicDept = attendance.currentEmployee?.department ?? attendance.currentReport?.department ?? company;
-
-        final recs = attendance.records
-            .where((r) => r.date.year == now.year && r.date.month == now.month)
-            .toList();
-
-        if (attendance.selectedMonth.year != now.year || attendance.selectedMonth.month != now.month) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted) {
-              attendance.resetToCurrentMonth();
-            }
-          });
-        }
+        final recs = attendance.currentMonthRecords;
 
         double totalH = 0;
         int presentCount = 0;

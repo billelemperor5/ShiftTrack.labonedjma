@@ -8,6 +8,7 @@ class AttendanceProvider extends ChangeNotifier {
   final ZKBioTimeService _service = ZKBioTimeService();
 
   MonthAttendanceReport? _currentReport;
+  MonthAttendanceReport? _currentMonthReport;
   ZKBioTimeEmployee? _currentEmployee;
   bool _isLoading = false;
   String? _errorMessage;
@@ -16,6 +17,7 @@ class AttendanceProvider extends ChangeNotifier {
   String _currentEmpCode = '';
 
   MonthAttendanceReport? get currentReport => _currentReport;
+  MonthAttendanceReport? get currentMonthReport => _currentMonthReport ?? _currentReport;
   ZKBioTimeEmployee? get currentEmployee => _currentEmployee;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
@@ -28,6 +30,24 @@ class AttendanceProvider extends ChangeNotifier {
   List<AttendanceRecord> get records {
     if (_currentReport == null) return [];
     return _currentReport!.days
+        .where((d) => d.punches.isNotEmpty || d.workTimeMinutes > 0)
+        .map((d) {
+      return AttendanceRecord(
+        date: d.date,
+        status: AttendanceStatus.present,
+        checkIn: d.entryTime != '--:--' ? d.entryTime : null,
+        checkOut: d.exitTime != '--:--' ? d.exitTime : null,
+        hours: d.workTimeMinutes / 60.0,
+        scheduledHours: 8.0,
+      );
+    }).toList();
+  }
+
+  /// Returns records specifically for the real current month (for Home Banner)
+  List<AttendanceRecord> get currentMonthRecords {
+    final rep = _currentMonthReport ?? _currentReport;
+    if (rep == null) return [];
+    return rep.days
         .where((d) => d.punches.isNotEmpty || d.workTimeMinutes > 0)
         .map((d) {
       return AttendanceRecord(
@@ -166,7 +186,7 @@ class AttendanceProvider extends ChangeNotifier {
       debugPrint('✅ [fetchAttendance] FINAL empName=$empName, department=$department');
 
       // 3. Calculate attendance
-      _currentReport = AttendanceCalculator.processRange(
+      final processedReport = AttendanceCalculator.processRange(
         empCode: empCode,
         empName: empName,
         department: department,
@@ -175,6 +195,12 @@ class AttendanceProvider extends ChangeNotifier {
         endDate: lastDay,
         punches: punches,
       );
+
+      _currentReport = processedReport;
+      final now = DateTime.now();
+      if (_selectedMonth.year == now.year && _selectedMonth.month == now.month) {
+        _currentMonthReport = processedReport;
+      }
 
       _errorMessage = null;
       return emp;
