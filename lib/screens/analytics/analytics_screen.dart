@@ -61,9 +61,15 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
                   )
                   .toList()
                 ..sort((a, b) => b.date.compareTo(a.date));
+          final report = attendance.currentReport;
+          final isSameMonth = report != null &&
+              report.days.isNotEmpty &&
+              report.days.first.date.year == month.year &&
+              report.days.first.date.month == month.month;
           final stats = _StatsModel.fromRecords(
             records,
             _defaultWorkHours(app.userProfile),
+            presenceRateOverride: isSameMonth ? report.presenceRate.toDouble() : null,
           );
 
           return Scaffold(
@@ -2097,8 +2103,9 @@ class _StatsModel {
 
   factory _StatsModel.fromRecords(
     List<AttendanceRecord> records,
-    double defaultWorkHours,
-  ) {
+    double defaultWorkHours, {
+    double? presenceRateOverride,
+  }) {
     final present = records
         .where((record) => record.status == AttendanceStatus.present)
         .length;
@@ -2125,7 +2132,8 @@ class _StatsModel {
         if (record.hours > target) overtime += record.hours - target;
       }
     }
-    final rate = records.isEmpty ? 0.0 : (present / records.length) * 100;
+    final rate = presenceRateOverride ??
+        (records.isEmpty ? 100.0 : (present / records.length) * 100);
 
     return _StatsModel(
       totalHours: totalHours,

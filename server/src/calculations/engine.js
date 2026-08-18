@@ -338,18 +338,28 @@ function processAttendanceRange(startDateStr, endDateStr, rawTransactions = [], 
 
   const sortedDateKeys = Object.keys(punchesByDate).sort();
 
+  let workingDaysAttended = 0;
+
   for (const dateKey of sortedDateKeys) {
     const dayResult = calculateDayAttendance(dateKey, punchesByDate[dateKey], options);
     days.push(dayResult);
 
-    const isPastOrToday = dateKey <= todayStr;
+    const isPast = dateKey < todayStr;
+    const isToday = dateKey === todayStr;
     const isWorkingDay = !dayResult.isWeekend;
+    const hasPunches = dayResult.workTimeMinutes > 0 || (dayResult.rawPunches && dayResult.rawPunches.length > 0);
 
-    if (isPastOrToday && isWorkingDay) {
-      elapsedWorkingDaysCount++;
+    if (isWorkingDay) {
+      if (isPast) {
+        elapsedWorkingDaysCount++;
+        if (hasPunches) workingDaysAttended++;
+      } else if (isToday && hasPunches) {
+        elapsedWorkingDaysCount++;
+        workingDaysAttended++;
+      }
     }
 
-    if (dayResult.workTimeMinutes > 0 || (dayResult.isToday && dayResult.rawEntry)) {
+    if (hasPunches) {
       daysWorked++;
       totalWorkedMinutes += dayResult.workTimeMinutes;
     }
@@ -371,7 +381,9 @@ function processAttendanceRange(startDateStr, endDateStr, rawTransactions = [], 
     totalWorkedMinutes,
     totalWorkedHoursStr: formatMinutesToHours(totalWorkedMinutes),
     averageDailyHoursStr: daysWorked ? formatMinutesToHours(Math.round(totalWorkedMinutes / daysWorked)) : '00h00',
-    presenceRate: Math.min(100, Math.round((daysWorked / Math.max(1, elapsedWorkingDaysCount)) * 100)),
+    presenceRate: elapsedWorkingDaysCount > 0
+      ? Math.min(100, Math.round((workingDaysAttended / elapsedWorkingDaysCount) * 100))
+      : 100,
     totalDelaysCount,
     totalDelayMinutes,
     totalDelayHoursStr: formatMinutesToHours(totalDelayMinutes),

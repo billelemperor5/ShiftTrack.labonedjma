@@ -211,8 +211,18 @@ class AttendanceCalculator {
         }
       }
 
-      if (!isFuture && !isWeekend) {
-        elapsedWorkingDaysCount++;
+      final hasPunchesOrWork = dayPunches.isNotEmpty || workTimeMinutes > 0;
+
+      // Smart Presence Calculation:
+      // Working days = Dimanche (7) to Jeudi (4). Weekend = Vendredi (5) & Samedi (6).
+      // Past working days: always counted in elapsed required days.
+      // Today working day: counted in elapsed required days IF punched today. If awaiting punch, not penalized.
+      if (!isWeekend) {
+        if (isPast) {
+          elapsedWorkingDaysCount++;
+        } else if (isToday && hasPunchesOrWork) {
+          elapsedWorkingDaysCount++;
+        }
       }
 
       daySummaries.add(DailyAttendanceSummary(
@@ -239,8 +249,10 @@ class AttendanceCalculator {
       current = current.add(const Duration(days: 1));
     }
 
+    final workingDaysAttended = daySummaries.where((d) => !d.isWeekend && (!d.isFuture && (!d.isToday || d.punches.isNotEmpty)) && (d.punches.isNotEmpty || d.workTimeMinutes > 0)).length;
+
     final presenceRate = elapsedWorkingDaysCount > 0
-        ? ((daysWorked / elapsedWorkingDaysCount) * 100).clamp(0, 100).round()
+        ? ((workingDaysAttended / elapsedWorkingDaysCount) * 100).clamp(0, 100).round()
         : 100;
 
     final avgDailyMinutes = daysWorked > 0 ? (totalWorkMinutes ~/ daysWorked) : 0;

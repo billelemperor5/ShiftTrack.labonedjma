@@ -138,7 +138,10 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
         }
 
         final averageH = presentCount > 0 ? totalH / presentCount : 0.0;
-        final presenceRate = recs.isEmpty ? 0.0 : presentCount / recs.length;
+        final currentRep = attendance.currentMonthReport;
+        final presenceRate = currentRep != null
+            ? (currentRep.presenceRate / 100.0)
+            : (recs.isEmpty ? 1.0 : (presentCount / recs.length));
 
         return SingleChildScrollView(
           physics: const BouncingScrollPhysics(),
@@ -1701,7 +1704,10 @@ class _EnterpriseHeaderBannerState extends State<_EnterpriseHeaderBanner> {
         }
 
         final averageH = presentCount > 0 ? totalH / presentCount : 0.0;
-        final presenceRate = recs.isEmpty ? 0.0 : presentCount / recs.length;
+        final currentRep = attendance.currentMonthReport;
+        final presenceRate = currentRep != null
+            ? (currentRep.presenceRate / 100.0)
+            : (recs.isEmpty ? 1.0 : (presentCount / recs.length));
         final bannerHeight = topPad + 188.0;
         const statsHeight = 126.0;
         const statsOverlap = 24.0;
