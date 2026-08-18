@@ -13,6 +13,7 @@ import '../../providers/attendance_provider.dart';
 import '../../services/notification_service.dart';
 import '../../utils/storage_utils.dart';
 import '../../utils/image_helper.dart';
+import '../../utils/cache_helper.dart';
 import '../auth/biotime_login_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -668,12 +669,221 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Widget _tabContent(bool isDark, Color onSurface) {
     switch (_selectedTab) {
+      case 2:
+        return _cacheTab(isDark, onSurface);
       case 1:
         return _preferencesTab(isDark, onSurface);
       case 0:
       default:
         return _accountTab(isDark, onSurface);
     }
+  }
+
+  Future<void> _handleCleanCache() async {
+    HapticFeedback.heavyImpact();
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Theme.of(ctx).cardColor,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: const Row(
+          children: [
+            Icon(Icons.cleaning_services_rounded, color: Color(0xFFEF4444)),
+            SizedBox(width: 10),
+            Text('Nettoyer le Cache', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18)),
+          ],
+        ),
+        content: const Text(
+          'Cette action va vider le cache du navigateur et forcer le rechargement immédiat de la dernière version du système (v3.0.2). Vos données restent totalement préservées.',
+          style: TextStyle(fontSize: 14, height: 1.4),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Annuler', style: TextStyle(fontWeight: FontWeight.w700)),
+          ),
+          FilledButton.icon(
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFFEF4444),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            ),
+            icon: const Icon(Icons.refresh_rounded, size: 18),
+            label: const Text('Vider et Recharger', style: TextStyle(fontWeight: FontWeight.w900)),
+            onPressed: () => Navigator.pop(ctx, true),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      if (!mounted) return;
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => Center(
+          child: Container(
+            padding: const EdgeInsets.all(28),
+            decoration: BoxDecoration(
+              color: Theme.of(context).cardColor,
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.25),
+                  blurRadius: 30,
+                  offset: const Offset(0, 10),
+                ),
+              ],
+            ),
+            child: const Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(color: Color(0xFF0F766E), strokeWidth: 3),
+                SizedBox(height: 18),
+                Text(
+                  'Nettoyage et mise à jour...',
+                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      await Future.delayed(const Duration(milliseconds: 600));
+      await CacheHelper.clearCacheAndReload();
+    }
+  }
+
+  Widget _cacheTab(bool isDark, Color onSurface) {
+    return _SlideFadeGroup(
+      children: [
+        _SectionHeader(
+          icon: Icons.cleaning_services_rounded,
+          title: 'Maintenance & Cache Système',
+        ),
+        const SizedBox(height: 12),
+        _PremiumPanel(
+          isDark: isDark,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF0F766E), Color(0xFF0D9488)],
+                      ),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: const Icon(Icons.system_update_rounded, color: Colors.white, size: 22),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Version ShiftTrack',
+                          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Version actuelle: v3.0.2 (Build 32)',
+                          style: TextStyle(
+                            color: onSurface.withValues(alpha: 0.6),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF22C55E).withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFF22C55E).withValues(alpha: 0.4)),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.check_circle_rounded, color: Color(0xFF22C55E), size: 14),
+                        SizedBox(width: 4),
+                        Text(
+                          'À jour',
+                          style: TextStyle(
+                            color: Color(0xFF22C55E),
+                            fontWeight: FontWeight.w900,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              _PanelDivider(onSurface: onSurface),
+              const SizedBox(height: 16),
+              Text(
+                'Si vous ne voyez pas les dernières fonctionnalités ou modifications déployées, cliquez sur le bouton ci-dessous pour forcer le nettoyage du cache et charger instantanément la version la plus récente.',
+                style: TextStyle(
+                  color: onSurface.withValues(alpha: 0.72),
+                  fontSize: 12.5,
+                  height: 1.45,
+                ),
+              ),
+              const SizedBox(height: 20),
+              Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: _handleCleanCache,
+                  borderRadius: BorderRadius.circular(18),
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 18),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFFDC2626), Color(0xFFEF4444)],
+                      ),
+                      borderRadius: BorderRadius.circular(18),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFFEF4444).withValues(alpha: 0.3),
+                          blurRadius: 16,
+                          offset: const Offset(0, 6),
+                        ),
+                      ],
+                    ),
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.cleaning_services_rounded, color: Colors.white, size: 20),
+                        SizedBox(width: 10),
+                        Text(
+                          'Nettoyer le Cache & Recharger',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w900,
+                            fontSize: 14,
+                            letterSpacing: 0.3,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
   }
 
   Widget _accountTab(bool isDark, Color onSurface) {
@@ -808,6 +1018,7 @@ class _SettingsTabs extends StatelessWidget {
     final tabs = [
       (Icons.person_rounded, 'Compte'),
       (Icons.tune_rounded, 'Préférences'),
+      (Icons.cleaning_services_rounded, 'Nettoyer Cache'),
     ];
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
@@ -1732,7 +1943,7 @@ class _DeveloperAboutDialog extends StatelessWidget {
               ),
               const SizedBox(height: 20),
               Text(
-                'ShiftTrack v3.0.1',
+                'ShiftTrack v3.0.2',
                 style: TextStyle(
                   color: onSurface.withValues(alpha: 0.38),
                   fontSize: 12,
