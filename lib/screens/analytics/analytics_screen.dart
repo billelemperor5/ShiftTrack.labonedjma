@@ -264,7 +264,7 @@ class _StatsHeader extends StatelessWidget {
                   ),
                 ),
                 Container(
-                  width: 240,
+                  width: 320,
                   height: 38,
                   padding: const EdgeInsets.all(3),
                   decoration: BoxDecoration(
@@ -297,8 +297,9 @@ class _StatsHeader extends StatelessWidget {
                       fontSize: 12,
                     ),
                     tabs: const [
-                      Tab(text: 'Vue d\'ensemble'),
+                      Tab(text: 'Résumé'),
                       Tab(text: 'Détails'),
+                      Tab(text: 'Équipe'),
                     ],
                   ),
                 ),
