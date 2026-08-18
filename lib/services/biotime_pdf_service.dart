@@ -18,19 +18,12 @@ class BioTimePdfService {
 
     final totalWorkedDays = days.where((d) => d.punches.isNotEmpty || d.workTimeMinutes > 0).length;
     int totalMinutes = 0;
-    int totalDelays = 0;
-    int totalDelayMins = 0;
 
     for (final d in days) {
       totalMinutes += d.workTimeMinutes;
-      if (d.delayMinutes > 0) {
-        totalDelays++;
-        totalDelayMins += d.delayMinutes;
-      }
     }
 
     final totalHoursFormatted = '${(totalMinutes ~/ 60).toString().padLeft(2, '0')}h${(totalMinutes % 60).toString().padLeft(2, '0')}';
-    final totalDelayFormatted = '${(totalDelayMins ~/ 60).toString().padLeft(2, '0')}h${(totalDelayMins % 60).toString().padLeft(2, '0')}';
     final nowStr = DateFormat('dd/MM/yyyy HH:mm', 'fr_FR').format(DateTime.now());
 
     pdf.addPage(
@@ -122,14 +115,6 @@ class BioTimePdfService {
                 fontBold: fontBold,
                 fontRegular: fontRegular,
               ),
-              pw.SizedBox(width: 8),
-              _buildPdfKpi(
-                title: 'Retards Constatés',
-                value: '$totalDelays ($totalDelayFormatted)',
-                color: totalDelays > 0 ? PdfColors.orange800 : PdfColors.green700,
-                fontBold: fontBold,
-                fontRegular: fontRegular,
-              ),
             ],
           ),
           pw.SizedBox(height: 14),
@@ -140,11 +125,10 @@ class BioTimePdfService {
             columnWidths: const {
               0: pw.FlexColumnWidth(2.2), // Date
               1: pw.FlexColumnWidth(2.0), // Jour
-              2: pw.FlexColumnWidth(2.2), // Entrée
-              3: pw.FlexColumnWidth(2.2), // Sortie
-              4: pw.FlexColumnWidth(2.2), // Durée
-              5: pw.FlexColumnWidth(2.0), // Retard
-              6: pw.FlexColumnWidth(2.4), // Statut
+              2: pw.FlexColumnWidth(2.4), // Entrée
+              3: pw.FlexColumnWidth(2.4), // Sortie
+              4: pw.FlexColumnWidth(2.4), // Durée
+              5: pw.FlexColumnWidth(2.6), // Statut
             },
             children: [
               // Header row
@@ -156,7 +140,6 @@ class BioTimePdfService {
                   _buildTableHeaderCell('1er Pointage', fontBold),
                   _buildTableHeaderCell('Dernier Pointage', fontBold),
                   _buildTableHeaderCell('Temps Travaillé', fontBold),
-                  _buildTableHeaderCell('Retard', fontBold),
                   _buildTableHeaderCell('Statut', fontBold),
                 ],
               ),
@@ -189,12 +172,6 @@ class BioTimePdfService {
                       hasPunches ? d.workTimeStr : '-',
                       fontBold,
                       color: hasPunches ? PdfColors.teal900 : PdfColors.grey500,
-                      align: pw.TextAlign.center,
-                    ),
-                    _buildTableCell(
-                      hasPunches && d.delayMinutes > 0 ? d.delayStr : '-',
-                      fontRegular,
-                      color: d.delayMinutes > 0 ? PdfColors.red800 : PdfColors.grey600,
                       align: pw.TextAlign.center,
                     ),
                     _buildStatusCell(d, fontBold),
@@ -369,15 +346,9 @@ class BioTimePdfService {
     PdfColor textCol = PdfColors.grey800;
 
     if (hasPunches) {
-      if (d.delayMinutes > 0) {
-        label = 'Présent (Retard)';
-        bg = PdfColors.amber100;
-        textCol = PdfColors.orange900;
-      } else {
-        label = 'Présent';
-        bg = PdfColors.green100;
-        textCol = PdfColors.green900;
-      }
+      label = 'Présent';
+      bg = PdfColors.green100;
+      textCol = PdfColors.green900;
     }
 
     return pw.Padding(

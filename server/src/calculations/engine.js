@@ -291,9 +291,6 @@ function calculateDayAttendance(dateKey, rawPunches = [], options = {}) {
   if (result.anomalies.length > 0) {
     result.status = 'Pointage avec anomalie';
     result.statusBadge = 'badge-warning';
-  } else if (result.delayMinutes > 0) {
-    result.status = 'Présent (Retard)';
-    result.statusBadge = 'badge-warning';
   } else {
     result.status = 'Présent';
     result.statusBadge = 'badge-success';

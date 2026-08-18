@@ -137,16 +137,6 @@ class _CalendarWidgetState extends State<CalendarWidget> {
                           Text(summary.workTimeStr, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF0F766E))),
                         ],
                       ),
-                      if (summary.delayMinutes > 0) ...[
-                        const Divider(height: 16),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text('Retard constaté:', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: onSurface.withValues(alpha: 0.7))),
-                            Text('${summary.delayMinutes} min', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFFEF4444))),
-                          ],
-                        ),
-                      ],
                     ],
                   ),
                 ),

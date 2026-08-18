@@ -182,12 +182,7 @@ class AttendanceCalculator {
         }
 
         // Status assignment
-        if (delayMinutes > 0) {
-          status = 'Présent (Retard)';
-          statusBadge = 'badge-warning';
-          totalDelaysCount++;
-          totalDelayMinutes += delayMinutes;
-        } else if (dayPunches.length == 1 && isToday) {
+        if (dayPunches.length == 1 && isToday) {
           status = 'Présent (En cours)';
           statusBadge = 'badge-info';
         } else {

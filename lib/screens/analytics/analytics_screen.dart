@@ -862,9 +862,9 @@ class _AttendanceRateCard extends StatelessWidget {
                         ),
                         Expanded(
                           child: _LegendMetric(
-                            label: 'Retards',
-                            value: '00:00 h',
-                            color: const Color(0xFF10B981),
+                            label: 'Total Heures',
+                            value: formatDuration(stats.totalHours),
+                            color: const Color(0xFF6366F1),
                           ),
                         ),
                       ],

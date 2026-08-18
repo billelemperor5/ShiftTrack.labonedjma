@@ -514,17 +514,6 @@ class _MonthlyAttendanceScreenState extends State<MonthlyAttendanceScreen> {
                           onSurface: onSurface,
                         ),
                       ),
-                      Container(width: 1, height: 38, color: onSurface.withValues(alpha: 0.1)),
-                      Expanded(
-                        child: _buildModalMetricItem(
-                          label: 'Retard',
-                          value: summary.delayMinutes > 0 ? summary.delayStr : '00h00',
-                          color: summary.delayMinutes > 0 ? const Color(0xFFEF4444) : const Color(0xFF10B981),
-                          icon: Icons.warning_amber_rounded,
-                          isDark: isDark,
-                          onSurface: onSurface,
-                        ),
-                      ),
                     ],
                   ),
                 ),
@@ -1611,16 +1600,6 @@ class _MonthlyAttendanceScreenState extends State<MonthlyAttendanceScreen> {
                         onSurface: onSurface,
                       ),
                     ),
-                    Container(width: 1, height: 34, color: onSurface.withValues(alpha: 0.1)),
-                    Expanded(
-                      child: _buildMetricMini(
-                        label: 'Retard',
-                        value: summary.delayMinutes > 0 ? summary.delayStr : '00h00',
-                        color: summary.delayMinutes > 0 ? const Color(0xFFEF4444) : const Color(0xFF10B981),
-                        isDark: isDark,
-                        onSurface: onSurface,
-                      ),
-                    ),
                   ],
                 ),
               ),
@@ -1685,7 +1664,6 @@ class _MonthlyAttendanceScreenState extends State<MonthlyAttendanceScreen> {
     final workedDays = report?.daysWorked ?? 0;
     final totalHoursStr = report?.totalWorkHoursStr ?? '00h00';
     final presenceRate = '${report?.presenceRate ?? 100}%';
-    final delaysCount = report?.totalDelaysCount ?? 0;
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -1752,22 +1730,6 @@ class _MonthlyAttendanceScreenState extends State<MonthlyAttendanceScreen> {
                   subtitle: 'Cumul du mois',
                   icon: Icons.schedule_rounded,
                   color: const Color(0xFF3B82F6),
-                  isDark: isDark,
-                  onSurface: onSurface,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: _buildInsightPill(
-                  title: 'Retards constatés',
-                  value: '$delaysCount',
-                  subtitle: delaysCount > 0 ? '$delaysCount retards enregistrés' : 'Ponctualité parfaite',
-                  icon: Icons.warning_amber_rounded,
-                  color: delaysCount > 0 ? const Color(0xFFF97316) : const Color(0xFF10B981),
                   isDark: isDark,
                   onSurface: onSurface,
                 ),
