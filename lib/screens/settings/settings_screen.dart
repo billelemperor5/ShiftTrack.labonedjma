@@ -1732,7 +1732,7 @@ class _DeveloperAboutDialog extends StatelessWidget {
               ),
               const SizedBox(height: 20),
               Text(
-                'ShiftTrack v2.0.0',
+                'ShiftTrack v3.0.0',
                 style: TextStyle(
                   color: onSurface.withValues(alpha: 0.38),
                   fontSize: 12,
