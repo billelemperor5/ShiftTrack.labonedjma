@@ -75,6 +75,19 @@ class AttendanceProvider extends ChangeNotifier {
     fetchAttendance(_currentEmpCode);
   }
 
+  void resetToCurrentMonth({bool forceFetch = false}) {
+    final now = DateTime.now();
+    final isDifferentMonth = _selectedMonth.year != now.year || _selectedMonth.month != now.month;
+    if (isDifferentMonth || forceFetch) {
+      _selectedMonth = now;
+      if (_currentEmpCode.isNotEmpty) {
+        fetchAttendance(_currentEmpCode);
+      } else {
+        notifyListeners();
+      }
+    }
+  }
+
   void refresh() {
     fetchAttendance(_currentEmpCode, forceSync: true);
   }

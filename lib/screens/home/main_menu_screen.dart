@@ -55,11 +55,15 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
   }
 
   void _openFeature(BuildContext context, int tabIndex, Widget screen) {
+    final attProvider = context.read<AttendanceProvider>();
     final width = MediaQuery.of(context).size.width;
     if (width > 850) {
       setState(() {
         _selectedIndex = tabIndex;
       });
+      if (tabIndex == 0) {
+        attProvider.resetToCurrentMonth();
+      }
     } else {
       Navigator.of(context).push(
         PageRouteBuilder<void>(
@@ -78,7 +82,11 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
             );
           },
         ),
-      );
+      ).then((_) {
+        if (mounted) {
+          attProvider.resetToCurrentMonth();
+        }
+      });
     }
   }
 
@@ -1687,6 +1695,14 @@ class _EnterpriseHeaderBannerState extends State<_EnterpriseHeaderBanner> {
         final recs = attendance.records
             .where((r) => r.date.year == now.year && r.date.month == now.month)
             .toList();
+
+        if (attendance.selectedMonth.year != now.year || attendance.selectedMonth.month != now.month) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              attendance.resetToCurrentMonth();
+            }
+          });
+        }
 
         double totalH = 0;
         int presentCount = 0;

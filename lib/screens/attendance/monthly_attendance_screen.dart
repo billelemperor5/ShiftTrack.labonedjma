@@ -26,7 +26,10 @@ class _MonthlyAttendanceScreenState extends State<MonthlyAttendanceScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final provider = context.read<AttendanceProvider>();
-      if (provider.currentReport == null) {
+      final now = DateTime.now();
+      if (provider.selectedMonth.year != now.year || provider.selectedMonth.month != now.month) {
+        provider.setSelectedMonth(now);
+      } else if (provider.currentReport == null) {
         provider.fetchAttendance(provider.currentEmpCode);
       }
     });
@@ -776,44 +779,52 @@ class _MonthlyAttendanceScreenState extends State<MonthlyAttendanceScreen> {
             ? currentEmp!.department
             : (report?.department ?? profile?.companyName ?? 'IT');
 
-        return Scaffold(
-          backgroundColor: isDark ? const Color(0xFF0B1120) : const Color(0xFFF1F5F9),
-          body: CustomScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            slivers: [
-              // 1. Premium Colorful Luxury Topbar with Prominent Working Buttons
-              SliverAppBar(
-                expandedHeight: 140,
-                pinned: true,
-                stretch: true,
-                elevation: 6,
-                backgroundColor: const Color(0xFF0F172A),
-                leading: Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Material(
-                    color: Colors.white.withValues(alpha: 0.22),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      side: BorderSide(color: Colors.white.withValues(alpha: 0.35)),
-                    ),
-                    clipBehavior: Clip.antiAlias,
-                    child: InkWell(
-                      onTap: () {
-                        HapticFeedback.lightImpact();
-                        if (Navigator.of(context).canPop()) {
-                          Navigator.of(context).pop();
-                        } else {
-                          Navigator.of(context).pushReplacement(
-                            MaterialPageRoute(builder: (_) => const MainMenuScreen()),
-                          );
-                        }
-                      },
-                      child: const Center(
-                        child: Icon(Icons.arrow_back_rounded, color: Colors.white, size: 22),
+        return PopScope(
+          canPop: true,
+          onPopInvokedWithResult: (didPop, result) {
+            if (didPop) {
+              attendanceProvider.resetToCurrentMonth();
+            }
+          },
+          child: Scaffold(
+            backgroundColor: isDark ? const Color(0xFF0B1120) : const Color(0xFFF1F5F9),
+            body: CustomScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              slivers: [
+                // 1. Premium Colorful Luxury Topbar with Prominent Working Buttons
+                SliverAppBar(
+                  expandedHeight: 140,
+                  pinned: true,
+                  stretch: true,
+                  elevation: 6,
+                  backgroundColor: const Color(0xFF0F172A),
+                  leading: Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Material(
+                      color: Colors.white.withValues(alpha: 0.22),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        side: BorderSide(color: Colors.white.withValues(alpha: 0.35)),
+                      ),
+                      clipBehavior: Clip.antiAlias,
+                      child: InkWell(
+                        onTap: () {
+                          HapticFeedback.lightImpact();
+                          attendanceProvider.resetToCurrentMonth();
+                          if (Navigator.of(context).canPop()) {
+                            Navigator.of(context).pop();
+                          } else {
+                            Navigator.of(context).pushReplacement(
+                              MaterialPageRoute(builder: (_) => const MainMenuScreen()),
+                            );
+                          }
+                        },
+                        child: const Center(
+                          child: Icon(Icons.arrow_back_rounded, color: Colors.white, size: 22),
+                        ),
                       ),
                     ),
                   ),
-                ),
                 centerTitle: false,
                 titleSpacing: 4,
                 title: Row(
@@ -1151,11 +1162,12 @@ class _MonthlyAttendanceScreenState extends State<MonthlyAttendanceScreen> {
                           ],
                         ],
                       ),
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         );
       },
