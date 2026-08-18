@@ -23,6 +23,9 @@
 
   <!-- Theme color for all mobile browsers (white) -->
   <meta name="theme-color" content="#FFFFFF">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
 
   <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
@@ -109,28 +112,37 @@
       }
     }
   </style>
-  <!-- Safe service worker unregistration to avoid stale caching without throwing in file:// or null origins -->
+  <!-- Safe cache busting & service worker reset on version update -->
   <script>
-    try {
-      if (window.isSecureContext || window.location.protocol === 'http:' || window.location.protocol === 'https:') {
-        if ('serviceWorker' in navigator && typeof navigator.serviceWorker.getRegistrations === 'function') {
-          navigator.serviceWorker.getRegistrations().then(function (registrations) {
-            for (var i = 0; i < registrations.length; i++) {
-              registrations[i].unregister().catch(function () { });
+    (function() {
+      var APP_VERSION = '3.0.1+31';
+      try {
+        if (window.isSecureContext || window.location.protocol === 'http:' || window.location.protocol === 'https:') {
+          var lastVersion = localStorage.getItem('shifttrack_app_version');
+          var isNewVersion = (lastVersion !== APP_VERSION);
+          
+          if (isNewVersion) {
+            localStorage.setItem('shifttrack_app_version', APP_VERSION);
+            if ('caches' in window && typeof caches.keys === 'function') {
+              caches.keys().then(function (keys) {
+                for (var i = 0; i < keys.length; i++) {
+                  caches.delete(keys[i]).catch(function () { });
+                }
+              }).catch(function () { });
             }
-          }).catch(function (e) { });
-        }
-        if ('caches' in window && typeof caches.keys === 'function') {
-          caches.keys().then(function (keys) {
-            for (var i = 0; i < keys.length; i++) {
-              caches.delete(keys[i]).catch(function () { });
+            if ('serviceWorker' in navigator && typeof navigator.serviceWorker.getRegistrations === 'function') {
+              navigator.serviceWorker.getRegistrations().then(function (registrations) {
+                for (var i = 0; i < registrations.length; i++) {
+                  registrations[i].unregister().catch(function () { });
+                }
+              }).catch(function () { });
             }
-          }).catch(function (e) { });
+          }
         }
+      } catch (e) {
+        // Ignored in restricted environments
       }
-    } catch (e) {
-      // Ignored in non-supported / file:// origins
-    }
+    })();
   </script>
 </head>
 
@@ -179,7 +191,7 @@
     setTimeout(removeSplash, 1500);
   </script>
 
-  <script src="flutter_bootstrap.js" async></script>
+  <script src="flutter_bootstrap.js?v=3.0.1" async></script>
 </body>
 
 </html>
